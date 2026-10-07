@@ -44,90 +44,72 @@ function getAuthHeaders(): HeadersInit {
 // -------------------------------------------------------------
 // 1. ADMIN AUTHENTICATION
 // -------------------------------------------------------------
-const ALLOWED_ADMIN_PASSES = [
-  'bsse5038',
-  'admin',
-  'admin123',
-  'ryvora',
-  'ryvora2026',
-  'password',
-  '123456',
-];
-
 export async function apiAdminLogin(password: string, remember: boolean = false): Promise<{ success: boolean; message?: string }> {
-  const raw = (password || '').trim();
-  const cleanPass = raw.toLowerCase().replace(/\s+/g, '');
-  const isAuthorized = ALLOWED_ADMIN_PASSES.some((p) => p === cleanPass || cleanPass.includes(p));
+  const cleanPass = (password || '').trim();
+  if (!cleanPass) {
+    return { success: false, message: 'Please enter your administrator password.' };
+  }
 
   try {
     const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: raw }),
+      body: JSON.stringify({ password: cleanPass }),
     });
 
-    // Safely parse JSON
-    const text = await res.text();
-    let data: any = null;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = null;
-    }
+    const data = await res.json().catch(() => null);
 
     if (res.ok && data && data.success && data.token) {
       setStoredAdminToken(data.token, remember);
       return { success: true };
     }
 
-    if (data && data.success) {
-      const token = data.token || `ryv_${Date.now()}_client_session`;
-      setStoredAdminToken(token, remember);
-      return { success: true };
-    }
-
-    // If server gave 401 but entered passcode is authorized staff key
-    if (isAuthorized) {
-      const fallbackToken = `ryv_${Date.now()}_client_fallback_session`;
-      setStoredAdminToken(fallbackToken, remember);
-      return { success: true };
-    }
-
     if (data && data.message) {
       return { success: false, message: data.message };
     }
+
+    return {
+      success: false,
+      message: 'Invalid administrator password. Access denied.',
+    };
   } catch (err: any) {
-    console.warn('[API] Admin login network notice:', err);
-    // If network error occurred, but passcode is authorized, grant access smoothly!
-    if (isAuthorized) {
-      const fallbackToken = `ryv_${Date.now()}_client_fallback_session`;
-      setStoredAdminToken(fallbackToken, remember);
-      return { success: true };
+    console.error('[API] Admin login network error:', err);
+    return {
+      success: false,
+      message: 'Authentication server temporarily unreachable. Please try again.',
+    };
+  }
+}
+
+export async function apiChangeAdminPassword(newPassword: string): Promise<{ success: boolean; message?: string }> {
+  const cleanPass = (newPassword || '').trim();
+  if (!cleanPass || cleanPass.length < 4) {
+    return { success: false, message: 'Password must be at least 4 characters.' };
+  }
+
+  try {
+    const res = await fetch('/api/admin/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ newPassword: cleanPass }),
+    });
+
+    const data = await res.json().catch(() => null);
+    if (res.ok && data && data.success) {
+      return { success: true, message: data.message };
     }
+    return { success: false, message: data?.message || 'Failed to update password.' };
+  } catch (err: any) {
+    return { success: false, message: 'Network error updating password.' };
   }
-
-  // Resilient authentication fallback:
-  // If the server route is unreachable, allow access if the entered passcode is correct
-  if (isAuthorized) {
-    const fallbackToken = `ryv_${Date.now()}_client_fallback_session`;
-    setStoredAdminToken(fallbackToken, remember);
-    return { success: true };
-  }
-
-  return {
-    success: false,
-    message: 'Invalid admin passcode. Please enter the authorized staff passcode (bsse5038 or admin).',
-  };
 }
 
 export async function apiVerifyAdminSession(): Promise<boolean> {
   const token = getStoredAdminToken();
   if (!token) return false;
-
-  // If local fallback token, it's valid
-  if (token.includes('client_fallback_session')) {
-    return true;
-  }
 
   try {
     const res = await fetch('/api/admin/verify', {
@@ -147,6 +129,7 @@ export async function apiVerifyAdminSession(): Promise<boolean> {
     return true;
   }
 }
+
 
 // -------------------------------------------------------------
 // 2. ORDERS

@@ -53,6 +53,7 @@ import {
   apiAddActivation,
   apiDeleteActivation,
   apiUpdateAnnouncement,
+  apiChangeAdminPassword,
 } from '../../utils/api';
 import { firestoreSubscribeOrders, firestoreUpdateOrder, firestoreDeleteOrder } from '../../lib/firebase';
 
@@ -152,6 +153,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const [viewingProofOrder, setViewingProofOrder] = useState<CustomerOrder | null>(null);
+
+  // Admin Security Password state
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
+  const [showAdminPasswordInput, setShowAdminPasswordInput] = useState(false);
+  const [adminPasswordStatus, setAdminPasswordStatus] = useState<{ message: string; error: boolean } | null>(null);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const handleUpdateAdminPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminPasswordStatus(null);
+    const clean = newAdminPassword.trim();
+    if (!clean || clean.length < 4) {
+      setAdminPasswordStatus({ message: 'New password must be at least 4 characters long.', error: true });
+      return;
+    }
+    if (clean !== confirmAdminPassword.trim()) {
+      setAdminPasswordStatus({ message: 'Password confirmation does not match.', error: true });
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const res = await apiChangeAdminPassword(clean);
+      if (res.success) {
+        setAdminPasswordStatus({ message: 'Admin password updated and live across all devices!', error: false });
+        setNewAdminPassword('');
+        setConfirmAdminPassword('');
+      } else {
+        setAdminPasswordStatus({ message: res.message || 'Failed to update administrator password.', error: true });
+      }
+    } catch {
+      setAdminPasswordStatus({ message: 'Network error updating administrator password.', error: true });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
 
   // Auto-refresh & notification polling state (12 seconds production interval)
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -2583,6 +2621,100 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <span className="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 font-mono text-xs font-bold">
                     USD ($)
                   </span>
+                </div>
+
+                {/* SECURE ADMIN PASSWORD MANAGEMENT */}
+                <div className="pt-4 border-t border-slate-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-cyan-400" />
+                        Administrator Security Password
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        Strict live authentication passcode for accessing this Admin Console.
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleUpdateAdminPassword} className="bg-slate-950/60 border border-slate-850 p-4 rounded-2xl space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-semibold text-slate-300">
+                            New Admin Password
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setShowAdminPasswordInput(!showAdminPasswordInput)}
+                            className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
+                          >
+                            {showAdminPasswordInput ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                            <span>{showAdminPasswordInput ? 'Hide' : 'Show'}</span>
+                          </button>
+                        </div>
+                        <input
+                          type={showAdminPasswordInput ? 'text' : 'password'}
+                          required
+                          value={newAdminPassword}
+                          onChange={(e) => setNewAdminPassword(e.target.value)}
+                          placeholder="Enter new strong password"
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          Confirm New Password
+                        </label>
+                        <input
+                          type={showAdminPasswordInput ? 'text' : 'password'}
+                          required
+                          value={confirmAdminPassword}
+                          onChange={(e) => setConfirmAdminPassword(e.target.value)}
+                          placeholder="Re-type new password"
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {adminPasswordStatus && (
+                      <div
+                        className={`p-2.5 rounded-xl text-xs flex items-center gap-2 ${
+                          adminPasswordStatus.error
+                            ? 'bg-rose-500/10 border border-rose-500/30 text-rose-400'
+                            : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                        }`}
+                      >
+                        {adminPasswordStatus.error ? (
+                          <AlertCircle className="w-4 h-4 shrink-0" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        )}
+                        <span>{adminPasswordStatus.message}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] text-slate-500">
+                        Updates live immediately. Minimum 4 characters.
+                      </span>
+                      <button
+                        type="submit"
+                        disabled={isUpdatingPassword || !newAdminPassword.trim()}
+                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                      >
+                        {isUpdatingPassword ? (
+                          <span>Updating Password...</span>
+                        ) : (
+                          <>
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Update Admin Password</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
                 </div>
 
                 <div className="pt-4 border-t border-slate-800 flex items-center justify-between">

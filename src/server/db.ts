@@ -1231,3 +1231,45 @@ export async function updateAnnouncement(text: string): Promise<string> {
   saveFallbackDB(db);
   return text;
 }
+
+// -------------------------------------------------------------
+// SECURE ADMIN CREDENTIAL STORAGE
+// -------------------------------------------------------------
+export async function getStoredAdminPassword(): Promise<string | null> {
+  await initDatabase();
+
+  const currentPool = getPool();
+  if (currentPool) {
+    try {
+      const res = await currentPool.query("SELECT value FROM settings WHERE key = 'admin_password'");
+      if (res.rows.length > 0 && res.rows[0].value) return res.rows[0].value;
+    } catch (err: any) {
+      console.warn('[DB] PostgreSQL admin_password read warning:', err.message);
+    }
+  }
+
+  const db = loadFallbackDB();
+  return (db as any).adminPassword || null;
+}
+
+export async function updateStoredAdminPassword(password: string): Promise<boolean> {
+  await initDatabase();
+
+  const currentPool = getPool();
+  if (currentPool) {
+    try {
+      await currentPool.query(
+        "INSERT INTO settings (key, value) VALUES ('admin_password', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+        [password]
+      );
+      return true;
+    } catch (err: any) {
+      console.warn('[DB] PostgreSQL admin_password update warning:', err.message);
+    }
+  }
+
+  const db = loadFallbackDB();
+  (db as any).adminPassword = password;
+  saveFallbackDB(db);
+  return true;
+}

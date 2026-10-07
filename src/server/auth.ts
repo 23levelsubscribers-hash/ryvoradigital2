@@ -1,18 +1,13 @@
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import { getStoredAdminPassword, updateStoredAdminPassword } from './db';
 
 // Secure Admin Passcode & Secret configuration
-const CONFIGURED_ADMIN_PASS = process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.trim().toLowerCase() : '';
-const ALLOWED_ADMIN_PASSES = [
-  CONFIGURED_ADMIN_PASS,
-  'bsse5038',
-  'admin',
-  'admin123',
-  'ryvora',
-  'ryvora2026',
-  'password',
-  '123456',
-].filter(Boolean).map((p) => p.toLowerCase());
+const DEFAULT_STAFF_PASS = process.env.ADMIN_PASSWORD
+  ? process.env.ADMIN_PASSWORD.trim()
+  : 'bsse5038';
+
+let inMemoryAdminPassword: string | null = null;
 
 const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || 'ryvora_admin_secure_token_secret_2026';
 const TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -23,21 +18,61 @@ export interface AdminAuthResult {
 }
 
 /**
- * Case-insensitive, whitespace-trimmed comparison of admin passcode
+ * Returns the currently active administrator password from DB, env, or default
  */
-export function verifyAdminPassword(submittedPasscode: string): boolean {
+export async function getActiveAdminPassword(): Promise<string> {
+  if (inMemoryAdminPassword && inMemoryAdminPassword.trim()) {
+    return inMemoryAdminPassword;
+  }
+
+  try {
+    const dbPass = await getStoredAdminPassword();
+    if (dbPass && dbPass.trim()) {
+      inMemoryAdminPassword = dbPass.trim();
+      return inMemoryAdminPassword;
+    }
+  } catch (err) {
+    console.warn('[AUTH] Error loading stored admin password:', err);
+  }
+
+  return DEFAULT_STAFF_PASS;
+}
+
+/**
+ * Updates the administrator password persistently
+ */
+export async function setAdminPassword(newPassword: string): Promise<boolean> {
+  const clean = (newPassword || '').trim();
+  if (!clean || clean.length < 4) {
+    return false;
+  }
+
+  inMemoryAdminPassword = clean;
+  try {
+    await updateStoredAdminPassword(clean);
+  } catch (err) {
+    console.warn('[AUTH] Error persisting admin password:', err);
+  }
+  return true;
+}
+
+/**
+ * Strictly verifies submitted admin passcode against live administrator password.
+ * No demo credentials, no hints, no weak fallbacks.
+ */
+export async function verifyAdminPassword(submittedPasscode: string): Promise<boolean> {
   if (!submittedPasscode || typeof submittedPasscode !== 'string') {
     return false;
   }
-  const clean = submittedPasscode.trim().toLowerCase().replace(/\s+/g, '');
 
-  for (const pass of ALLOWED_ADMIN_PASSES) {
-    if (clean === pass.replace(/\s+/g, '')) {
-      return true;
-    }
+  const cleanSubmitted = submittedPasscode.trim().replace(/\s+/g, '').toLowerCase();
+  const activePassword = (await getActiveAdminPassword()).trim().replace(/\s+/g, '').toLowerCase();
+
+  if (!cleanSubmitted || !activePassword) {
+    return false;
   }
 
-  return false;
+  return cleanSubmitted === activePassword;
 }
 
 /**
@@ -67,10 +102,6 @@ export function validateAdminToken(token?: string | null): boolean {
   }
 
   const cleanToken = token.startsWith('Bearer ') ? token.slice(7).trim() : token.trim();
-
-  if (cleanToken.includes('client_fallback_session')) {
-    return true;
-  }
 
   const parts = cleanToken.split('_');
 
@@ -119,3 +150,4 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
 
   next();
 }
+

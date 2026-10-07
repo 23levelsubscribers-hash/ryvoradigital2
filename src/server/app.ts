@@ -26,7 +26,13 @@ import {
   getPaymentProof,
   INITIAL_COUPONS,
 } from './db';
-import { verifyAdminPassword, generateAdminToken, requireAdmin, validateAdminToken } from './auth';
+import {
+  verifyAdminPassword,
+  generateAdminToken,
+  requireAdmin,
+  validateAdminToken,
+  setAdminPassword,
+} from './auth';
 import { notifyNewOrder } from './notifications';
 import { CustomerOrder, PlanDuration } from '../types';
 import { PRODUCTS } from '../data/products';
@@ -57,18 +63,18 @@ initDatabase().catch((err) => console.warn('[APP] Database init warning:', err))
 // -------------------------------------------------------------
 // 1. ADMIN AUTHENTICATION ENDPOINTS
 // -------------------------------------------------------------
-router.post('/admin/login', (req: Request, res: Response) => {
+router.post('/admin/login', async (req: Request, res: Response) => {
   const { password } = req.body || {};
 
   if (!password || typeof password !== 'string') {
-    return res.status(400).json({ success: false, message: 'Admin passcode is required.' });
+    return res.status(400).json({ success: false, message: 'Admin password is required.' });
   }
 
-  const isValid = verifyAdminPassword(password);
+  const isValid = await verifyAdminPassword(password);
   if (!isValid) {
     return res.status(401).json({
       success: false,
-      message: 'Invalid admin passcode. Access denied.',
+      message: 'Invalid administrator password. Access denied.',
     });
   }
 
@@ -83,6 +89,29 @@ router.post('/admin/login', (req: Request, res: Response) => {
 
 router.get('/admin/verify', requireAdmin, (req: Request, res: Response) => {
   res.json({ success: true, authenticated: true });
+});
+
+router.post('/admin/change-password', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { newPassword } = req.body || {};
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 4) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 4 characters long.',
+      });
+    }
+
+    await setAdminPassword(newPassword.trim());
+    return res.json({
+      success: true,
+      message: 'Administrator password updated successfully.',
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update administrator password.',
+    });
+  }
 });
 
 // -------------------------------------------------------------
