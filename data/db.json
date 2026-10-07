@@ -918,6 +918,105 @@
   ],
   "orders": [
     {
+      "orderId": "RYV-56909-US",
+      "customerEmail": "crossdevice.customer@gmail.com",
+      "customerPhone": "+1 (415) 800-1122",
+      "items": [
+        {
+          "product": {
+            "id": "cursor-ai",
+            "name": "Cursor AI Pro",
+            "tagline": "The ultimate AI-first code editor with Claude 3.5 Sonnet & GPT-4o",
+            "category": "development",
+            "categoryLabel": "DEVELOPMENT",
+            "iconName": "Terminal",
+            "brandColor": "#38BDF8",
+            "accentGlow": "rgba(56, 189, 248, 0.25)",
+            "rating": 5,
+            "reviewsCount": 194,
+            "features": [
+              "Unlimited high-speed AI tab autocompletions & multi-line edits",
+              "Fast premium requests for Claude 3.5 Sonnet and GPT-4o models",
+              "Full codebase indexing, semantic symbol search & terminal AI"
+            ],
+            "retailPriceUSD": 20,
+            "priceUSD": 10.99,
+            "inStock": true,
+            "popular": true,
+            "featured": true,
+            "badge": "DEV FAVORITE",
+            "allowedAccountTypes": [
+              "private_account"
+            ],
+            "description": "Engineered for software engineers who build fast. Built on VS Code, Cursor allows real-time codebase refactoring, terminal agent execution, and instantaneous smart diffs.",
+            "deliveryTime": "Instant (3-5 mins)",
+            "warranty": "30-Day Active Renewal Warranty"
+          },
+          "duration": "1_month",
+          "accountType": "private_account",
+          "quantity": 1,
+          "priceUSD": 10.99
+        }
+      ],
+      "subtotalUSD": 10.99,
+      "discountUSD": 0,
+      "totalUSD": 10.99,
+      "paymentMethod": "Apple Pay",
+      "status": "processing",
+      "createdAt": "Today, 12:11 AM (Oct 7, 2026)",
+      "isNew": true
+    },
+    {
+      "orderId": "RYV-57187-US",
+      "customerEmail": "23levelsubscribers@gmail.com",
+      "items": [
+        {
+          "product": {
+            "id": "adobe-creative-cloud",
+            "name": "Adobe Creative Cloud",
+            "tagline": "All 20+ desktop creative apps including Photoshop, Illustrator & Premiere",
+            "category": "design",
+            "categoryLabel": "DESIGN",
+            "iconName": "Layers",
+            "brandColor": "#FA0F00",
+            "accentGlow": "rgba(250, 15, 0, 0.25)",
+            "rating": 5,
+            "reviewsCount": 285,
+            "features": [
+              "Full suite of 20+ official Adobe desktop & web applications",
+              "1,000 monthly generative AI credits for Firefly & Photoshop Generative Fill",
+              "Private account login valid on 2 concurrent devices (Mac / Windows)"
+            ],
+            "retailPriceUSD": 59.99,
+            "priceUSD": 19.99,
+            "inStock": true,
+            "popular": true,
+            "featured": true,
+            "badge": "POPULAR",
+            "allowedAccountTypes": [
+              "private_account",
+              "workspace_invite"
+            ],
+            "description": "Official Adobe Creative Cloud All Apps membership. Includes Photoshop, Illustrator, InDesign, Premiere Pro, After Effects, Lightroom, Acrobat Pro DC, and Adobe Fonts.",
+            "deliveryTime": "Instant (3-7 mins)",
+            "warranty": "Full Duration Warranty Guarantee"
+          },
+          "duration": "1_month",
+          "accountType": "private_account",
+          "quantity": 1,
+          "priceUSD": 19.99
+        }
+      ],
+      "subtotalUSD": 19.99,
+      "discountUSD": 0,
+      "totalUSD": 19.99,
+      "paymentMethod": "Credit/Debit Card (Stripe USA / Wire)",
+      "status": "processing",
+      "createdAt": "Today, 11:55 PM (Oct 6, 2026)",
+      "isNew": true,
+      "updatedAt": "2026-10-07T00:00:09.602Z"
+    },
+    {
       "orderId": "RYV-89128-US",
       "customerEmail": "designer@studio.com",
       "customerPhone": "+923001234567",
@@ -963,9 +1062,10 @@
       "totalUSD": 26.98,
       "coupon": "USA10",
       "paymentMethod": "PayPal",
-      "status": "processing",
+      "status": "delivered",
       "createdAt": "Today, 11:53 PM (Oct 6, 2026)",
-      "isNew": true
+      "isNew": true,
+      "updatedAt": "2026-10-06T23:59:49.335Z"
     },
     {
       "orderId": "RYV-32335-US",
@@ -1012,9 +1112,10 @@
       "discountUSD": 0,
       "totalUSD": 19.99,
       "paymentMethod": "Apple Pay",
-      "status": "processing",
+      "status": "activated",
       "createdAt": "Today, 11:53 PM (Oct 6, 2026)",
-      "isNew": true
+      "isNew": true,
+      "updatedAt": "2026-10-06T23:59:53.425Z"
     },
     {
       "orderId": "RYV-67820-US",
@@ -1061,9 +1162,10 @@
       "discountUSD": 0,
       "totalUSD": 8.99,
       "paymentMethod": "Credit/Debit Card",
-      "status": "processing",
+      "status": "delivered",
       "createdAt": "Today, 11:51 PM (Oct 6, 2026)",
-      "isNew": true
+      "isNew": true,
+      "updatedAt": "2026-10-06T23:59:54.675Z"
     },
     {
       "orderId": "RYV-25016-US",
@@ -2254,6 +2356,26 @@
   ],
   "activations": [
     {
+      "id": "act-1791331906379",
+      "productName": "Cursor AI Pro",
+      "category": "development",
+      "customerMasked": "c****r@gmail.com",
+      "city": "New York",
+      "state": "NY",
+      "minutesAgo": 1,
+      "planDuration": "1 month"
+    },
+    {
+      "id": "act-1791330956130",
+      "productName": "Adobe Creative Cloud",
+      "category": "design",
+      "customerMasked": "2****s@gmail.com",
+      "city": "Philadelphia",
+      "state": "PA",
+      "minutesAgo": 1,
+      "planDuration": "1 month"
+    },
+    {
       "id": "act-1791330825465",
       "productName": "Midjourney v6.1 Pro",
       "category": "ai",
@@ -2482,26 +2604,6 @@
       "state": "TX",
       "minutesAgo": 1,
       "planDuration": "1 month"
-    },
-    {
-      "id": "act-1",
-      "productName": "ChatGPT Plus & Team (1-Year)",
-      "category": "AI Tools",
-      "customerMasked": "d****@gmail.com",
-      "city": "Austin",
-      "state": "TX",
-      "minutesAgo": 2,
-      "planDuration": "1 Year License"
-    },
-    {
-      "id": "act-2",
-      "productName": "Adobe Creative Cloud All Apps",
-      "category": "Design",
-      "customerMasked": "alex.m****@outlook.com",
-      "city": "San Francisco",
-      "state": "CA",
-      "minutesAgo": 6,
-      "planDuration": "1 Month Private"
     }
   ],
   "announcement": "✦ USA #1 Digital Tools Reseller ✦ Instant Delivery (60-180s) ✦ 100% Replacement Warranty Guarantee ✦ Code \"USA10\" for 10% OFF"

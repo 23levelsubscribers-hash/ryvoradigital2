@@ -1,0 +1,36 @@
+{
+  "entities": {
+    "CustomerOrder": {
+      "title": "CustomerOrder",
+      "description": "Customer purchase order for digital tools and subscriptions.",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string", "description": "Unique order reference ID (e.g. RYV-12345-US)" },
+        "customerEmail": { "type": "string", "description": "Email address of customer" },
+        "customerPhone": { "type": "string", "description": "Optional contact number" },
+        "items": { "type": "string", "description": "JSON string or array of purchased items" },
+        "subtotalUSD": { "type": "number", "description": "Subtotal before coupon discount" },
+        "discountUSD": { "type": "number", "description": "Discount applied" },
+        "totalUSD": { "type": "number", "description": "Final total amount" },
+        "coupon": { "type": "string", "description": "Coupon code used" },
+        "paymentMethod": { "type": "string", "description": "Selected payment method" },
+        "paymentProof": { "type": "string", "description": "URL or indicator of receipt" },
+        "transactionId": { "type": "string", "description": "Transaction reference" },
+        "status": { "type": "string", "enum": ["processing", "activated", "delivered"], "description": "Order fulfillment status" },
+        "createdAt": { "type": "string", "description": "Human readable creation timestamp" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" },
+        "licenseKey": { "type": "string", "description": "Dispatched license key" },
+        "accountEmail": { "type": "string", "description": "Dispatched account email" },
+        "deliveryInstructions": { "type": "string", "description": "Instructions for login" },
+        "isNew": { "type": "boolean", "description": "Whether order is freshly placed" }
+      },
+      "required": ["orderId", "customerEmail", "totalUSD", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": "CustomerOrder",
+      "description": "Global persistent orders collection synced across all devices and instances"
+    }
+  }
+}

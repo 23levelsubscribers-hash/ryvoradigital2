@@ -3,6 +3,7 @@ import { X, Trash2, ShoppingBag, ShieldCheck, Zap, ArrowRight, Tag, CreditCard, 
 import { CartItem, CurrencyCode, CustomerOrder } from '../types';
 import { formatPrice } from '../utils/currency';
 import { apiCreateOrder, apiUploadProof } from '../utils/api';
+import { firestoreCreateOrder } from '../lib/firebase';
 
 function compressImage(file: File, maxWidth = 1600, quality = 0.82): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -211,6 +212,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         transactionId: transactionId.trim() || undefined,
       });
 
+      // Sync to cloud Firestore for instant multi-device live sync
+      firestoreCreateOrder(newOrder).catch((e) => console.warn('Firestore sync notice:', e));
+
       setIsSubmitting(false);
       onClearCart();
       onClose();
@@ -239,6 +243,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         createdAt: `Today, ${timeStr} (${dateStr})`,
         isNew: true,
       };
+
+      // Sync to cloud Firestore for instant multi-device live sync
+      firestoreCreateOrder(fallbackOrder).catch((e) => console.warn('Firestore fallback sync notice:', e));
 
       setIsSubmitting(false);
       onClearCart();

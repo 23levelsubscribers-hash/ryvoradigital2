@@ -32,6 +32,7 @@ import {
   apiUpdateAnnouncement,
   apiVerifyAdminSession,
 } from './utils/api';
+import { firestoreSubscribeOrders } from './lib/firebase';
 
 const INITIAL_COUPONS: PromoCoupon[] = [
   { code: 'USA10', discountPercent: 10, description: '10% USA Community Welcome Discount', active: true, usageCount: 142 },
@@ -266,8 +267,16 @@ export default function App() {
 
     initialFetch();
 
+    // Subscribe to cloud Firestore for live cross-device sync
+    const unsubscribeCloud = firestoreSubscribeOrders((liveOrders) => {
+      if (mounted && liveOrders && liveOrders.length > 0) {
+        setOrders(liveOrders);
+      }
+    });
+
     return () => {
       mounted = false;
+      unsubscribeCloud();
     };
   }, []);
 

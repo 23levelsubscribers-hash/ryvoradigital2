@@ -40,6 +40,7 @@ import {
   apiDeleteActivation,
   apiUpdateAnnouncement,
 } from '../../utils/api';
+import { firestoreSubscribeOrders, firestoreUpdateOrder } from '../../lib/firebase';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -116,7 +117,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       setIsRefreshing(true);
       const fresh = await apiGetOrders();
-      if (fresh) {
+      if (fresh && fresh.length > 0) {
         onUpdateOrders(fresh);
         setLastSync(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
       }
@@ -128,9 +129,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   useEffect(() => {
+    // 1. Initial server fetch
     refreshOrders();
+
+    // 2. Real-time Cloud Firestore subscription: Instantly receives orders from any laptop or device
+    const unsubscribeFirestore = firestoreSubscribeOrders((liveCloudOrders) => {
+      if (liveCloudOrders && liveCloudOrders.length > 0) {
+        console.log(`[Admin] Received ${liveCloudOrders.length} live orders from Cloud Firestore.`);
+        onUpdateOrders(liveCloudOrders);
+        setLastSync(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      }
+    });
+
+    // 3. Periodic fallback poll
     const interval = setInterval(refreshOrders, 12000);
-    return () => clearInterval(interval);
+    return () => {
+      unsubscribeFirestore();
+      clearInterval(interval);
+    };
   }, []);
 
   // Calculations
@@ -341,6 +357,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     try {
       await apiUpdateOrder(orderId, { status: 'delivered', credentials: newCreds, isNew: false });
+      await firestoreUpdateOrder(orderId, {
+        status: 'delivered',
+        credentials: { ...newCreds, accountEmail: updated.find(o => o.orderId === orderId)?.customerEmail || '' },
+        isNew: false
+      });
     } catch (err) {
       console.error('Error dispatching order on database:', err);
     }
@@ -355,6 +376,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     try {
       await apiUpdateOrder(orderId, { status: newStatus });
+      await firestoreUpdateOrder(orderId, { status: newStatus as any });
     } catch (err) {
       console.error('Error updating order status on database:', err);
     }

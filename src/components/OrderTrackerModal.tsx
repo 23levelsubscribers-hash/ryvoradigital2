@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, X, CheckCircle2, Clock, Mail, ShieldCheck, Key, AlertCircle, Loader2, Image as ImageIcon } from 'lucide-react';
 import { CustomerOrder } from '../types';
 import { apiTrackOrder } from '../utils/api';
+import { firestoreGetOrder } from '../lib/firebase';
 
 interface OrderTrackerModalProps {
   isOpen: boolean;
@@ -38,12 +39,36 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({ isOpen, on
         setTrackedOrder(result.order);
         setErrorMessage('');
       } else {
-        setTrackedOrder(null);
-        setErrorMessage(result.error || 'No active order found matching the provided reference.');
+        // Fallback: check Cloud Firestore directly for real-time cross-device sync
+        const cloudOrder = await firestoreGetOrder(cleanOrderId);
+        if (cloudOrder) {
+          if (cleanEmail && cloudOrder.customerEmail.toLowerCase() !== cleanEmail.toLowerCase()) {
+            setTrackedOrder(null);
+            setErrorMessage('Verification failed: The email address does not match this Order ID record.');
+          } else {
+            setTrackedOrder(cloudOrder);
+            setErrorMessage('');
+          }
+        } else {
+          setTrackedOrder(null);
+          setErrorMessage(result.error || 'No active order found matching the provided reference.');
+        }
       }
     } catch {
-      setTrackedOrder(null);
-      setErrorMessage('Connection error. Please check your network and retry.');
+      // In case API network error, check Firestore directly
+      try {
+        const cloudOrder = await firestoreGetOrder(cleanOrderId);
+        if (cloudOrder && (!cleanEmail || cloudOrder.customerEmail.toLowerCase() === cleanEmail.toLowerCase())) {
+          setTrackedOrder(cloudOrder);
+          setErrorMessage('');
+        } else {
+          setTrackedOrder(null);
+          setErrorMessage('No active order found matching the provided reference.');
+        }
+      } catch {
+        setTrackedOrder(null);
+        setErrorMessage('Connection error. Please check your network and retry.');
+      }
     } finally {
       setLoading(false);
     }

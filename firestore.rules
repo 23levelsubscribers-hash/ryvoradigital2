@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Orders Collection
+    match /orders/{orderId} {
+      // Allow any customer to create an order
+      allow create: if request.resource.data.orderId is string
+                    && request.resource.data.customerEmail is string
+                    && request.resource.data.totalUSD is number;
+
+      // Allow reading single order for tracking, or reading list
+      allow read: if true;
+
+      // Allow updating orders (e.g., status changes, credential dispatch)
+      allow update: if true;
+
+      // Deletions disallowed by default
+      allow delete: if false;
+    }
+  }
+}
