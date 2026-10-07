@@ -17,7 +17,13 @@ export const BrandIcon: React.FC<BrandIconProps> = ({
 }) => {
   const [hasImgError, setHasImgError] = useState(false);
 
-  const effectiveImageUrl = imageUrl || (id === 'chatgpt-plus' ? 'https://i.ibb.co/27nHxHZn/images-1.jpg' : undefined);
+  const effectiveImageUrl =
+    imageUrl ||
+    (id === 'chatgpt-plus'
+      ? 'https://i.ibb.co/27nHxHZn/images-1.jpg'
+      : id === 'adobe-creative-cloud'
+      ? 'https://i.ibb.co/Rkm7rcCp/images-2.jpg'
+      : undefined);
 
   if (effectiveImageUrl && !hasImgError) {
     return (

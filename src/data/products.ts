@@ -47,6 +47,7 @@ export const PRODUCTS: Product[] = [
     category: 'design',
     categoryLabel: 'DESIGN',
     iconName: 'Layers',
+    imageUrl: 'https://i.ibb.co/Rkm7rcCp/images-2.jpg',
     brandColor: '#FA0F00',
     accentGlow: 'rgba(250, 15, 0, 0.25)',
     rating: 5.0,
