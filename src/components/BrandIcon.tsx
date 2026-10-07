@@ -23,6 +23,14 @@ export const BrandIcon: React.FC<BrandIconProps> = ({
       ? 'https://i.ibb.co/27nHxHZn/images-1.jpg'
       : id === 'adobe-creative-cloud'
       ? 'https://i.ibb.co/Rkm7rcCp/images-2.jpg'
+      : id === 'capcut-pro'
+      ? 'https://i.ibb.co/YTY1x9Bg/images-3.jpg'
+      : id === 'midjourney-pro'
+      ? 'https://i.ibb.co/C3ckmVf9/images-3.png'
+      : id === 'google-ai-pro'
+      ? 'https://i.ibb.co/JWxQGkyL/images-4.jpg'
+      : id === 'nordvpn-surfshark'
+      ? 'https://i.ibb.co/TqgYrjWz/images-4.png'
       : undefined);
 
   if (effectiveImageUrl && !hasImgError) {
