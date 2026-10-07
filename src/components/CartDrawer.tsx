@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Trash2, ShoppingBag, ShieldCheck, Zap, ArrowRight, Tag, CreditCard, Check, Upload, Image as ImageIcon, Copy, AlertCircle, Loader2 } from 'lucide-react';
 import { CartItem, CurrencyCode, CustomerOrder } from '../types';
 import { formatPrice } from '../utils/currency';
@@ -73,6 +73,36 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [copiedInfo, setCopiedInfo] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper to completely clear and reset the checkout form for subsequent orders
+  const resetCheckoutForm = () => {
+    setCustomerEmail('');
+    setCustomerPhone('');
+    setTransactionId('');
+    setPaymentProof(null);
+    setPaymentProofName('');
+    setIsUploadingProof(false);
+    setSelectedPayment('card');
+    setCouponCode('');
+    setAppliedDiscountPercent(0);
+    setCouponMessage(null);
+    setFormError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Reset proof and transaction details whenever cart items are emptied
+  useEffect(() => {
+    if (items.length === 0) {
+      setPaymentProof(null);
+      setPaymentProofName('');
+      setTransactionId('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [items.length]);
 
   if (!isOpen) return null;
 
@@ -216,6 +246,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       firestoreCreateOrder(newOrder).catch((e) => console.warn('Firestore sync notice:', e));
 
       setIsSubmitting(false);
+      resetCheckoutForm();
       onClearCart();
       onClose();
       onOrderCompleted(newOrder);
@@ -248,6 +279,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       firestoreCreateOrder(fallbackOrder).catch((e) => console.warn('Firestore fallback sync notice:', e));
 
       setIsSubmitting(false);
+      resetCheckoutForm();
       onClearCart();
       onClose();
       onOrderCompleted(fallbackOrder);
@@ -403,7 +435,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
                   <span>Contact for Account Delivery:</span>
-                  <span className="text-[10px] text-amber-400 font-normal">Delivered after verification</span>
+                  {(customerEmail || customerPhone || paymentProof || transactionId) ? (
+                    <button
+                      type="button"
+                      onClick={resetCheckoutForm}
+                      className="text-[10px] text-cyan-400 hover:text-cyan-300 font-semibold cursor-pointer underline transition-colors"
+                    >
+                      Clear / Reset Form
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-amber-400 font-normal">Delivered after verification</span>
+                  )}
                 </label>
                 
                 <div>
