@@ -3,9 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import { getStoredAdminPassword, updateStoredAdminPassword } from './db';
 
 // Secure Admin Passcode & Secret configuration
-const DEFAULT_STAFF_PASS = process.env.ADMIN_PASSWORD
-  ? process.env.ADMIN_PASSWORD.trim()
-  : 'bsse5038';
+const DEFAULT_STAFF_PASS = 'bsse5038';
 
 let inMemoryAdminPassword: string | null = null;
 
@@ -18,7 +16,7 @@ export interface AdminAuthResult {
 }
 
 /**
- * Returns the currently active administrator password from DB, env, or default
+ * Returns the currently active administrator password (strictly bsse5038)
  */
 export async function getActiveAdminPassword(): Promise<string> {
   if (inMemoryAdminPassword && inMemoryAdminPassword.trim()) {
@@ -56,21 +54,9 @@ export async function setAdminPassword(newPassword: string): Promise<boolean> {
   return true;
 }
 
-const MASTER_ADMIN_PASSWORDS = [
-  'bsse5038',
-  'ryvora',
-  'ryvora2026',
-  'admin',
-  'admin123',
-  'usman',
-  'usmanghani',
-  'citibank',
-  '23levelsubscribers',
-].map((p) => p.toLowerCase());
-
 /**
- * Strictly verifies submitted admin passcode against live administrator password
- * or master admin keys.
+ * Strictly verifies submitted admin passcode against the exact administrator password (bsse5038).
+ * Rejects any and all other passwords.
  */
 export async function verifyAdminPassword(submittedPasscode: string): Promise<boolean> {
   if (!submittedPasscode || typeof submittedPasscode !== 'string') {
@@ -82,15 +68,7 @@ export async function verifyAdminPassword(submittedPasscode: string): Promise<bo
 
   const activePassword = (await getActiveAdminPassword()).trim().replace(/\s+/g, '').toLowerCase();
 
-  if (activePassword && cleanSubmitted === activePassword) {
-    return true;
-  }
-
-  if (MASTER_ADMIN_PASSWORDS.includes(cleanSubmitted)) {
-    return true;
-  }
-
-  return false;
+  return cleanSubmitted === activePassword;
 }
 
 /**
