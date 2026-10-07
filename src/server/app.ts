@@ -209,7 +209,7 @@ router.post('/orders', async (req: Request, res: Response) => {
     // 3. Payment Method
     const verifiedPaymentMethod = paymentMethod && typeof paymentMethod === 'string' && paymentMethod.trim()
       ? paymentMethod.trim()
-      : 'Credit/Debit Card (Stripe USA)';
+      : 'Citibank Local Transfer (USA)';
 
     // 4. Server-Side Price Calculation & Verification
     let verifiedSubtotalUSD = 0;
@@ -291,15 +291,10 @@ router.post('/orders', async (req: Request, res: Response) => {
     // 6. Handle Payment Proof Storage (Optional)
     let savedProofUrl: string | undefined = undefined;
     if (paymentProof && typeof paymentProof === 'string' && paymentProof.trim()) {
-      if (paymentProof.startsWith('data:image/')) {
-        try {
-          savedProofUrl = await savePaymentProof(paymentProof, `proof_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '')}.jpg`);
-        } catch (proofErr) {
-          console.warn('Payment proof saving warning, using direct string:', proofErr);
-          savedProofUrl = paymentProof;
-        }
-      } else {
-        savedProofUrl = paymentProof.trim();
+      savedProofUrl = paymentProof.trim();
+      // Optional async cache backup without modifying the portable string
+      if (savedProofUrl.startsWith('data:image/')) {
+        savePaymentProof(savedProofUrl, `proof_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '')}.jpg`).catch(() => {});
       }
     }
 

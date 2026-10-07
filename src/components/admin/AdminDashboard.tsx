@@ -36,6 +36,7 @@ import {
   FileText,
   CheckCheck,
   RotateCcw,
+  Download,
 } from 'lucide-react';
 import { Product, CustomerOrder, CustomerReview, LiveActivation, PromoCoupon, CategoryId } from '../../types';
 import { RyvoraLogo } from '../RyvoraLogo';
@@ -812,7 +813,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 space-y-1">
               <div>Store Server: <strong className="text-emerald-400">Online</strong></div>
               <div>License Auto-Bot: <strong className="text-cyan-400">Active</strong></div>
-              <div>US Gateway: <strong className="text-slate-200">Stripe Live</strong></div>
+              <div>Gateways: <strong className="text-slate-200">Citibank & TRC20</strong></div>
             </div>
           </div>
         </aside>
@@ -1621,12 +1622,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
 
                     {viewingProofOrder.paymentProof && (
-                      <div className="bg-slate-950 p-2 rounded-2xl border border-slate-800 flex items-center justify-center overflow-hidden mb-4">
-                        <img
-                          src={viewingProofOrder.paymentProof}
-                          alt="Customer Payment Receipt"
-                          className="max-h-[60vh] w-auto object-contain rounded-xl"
-                        />
+                      <div className="space-y-3 mb-4">
+                        <div className="bg-slate-950 p-2 rounded-2xl border border-slate-800 flex items-center justify-center overflow-hidden">
+                          <img
+                            src={viewingProofOrder.paymentProof}
+                            alt="Customer Payment Receipt"
+                            className="max-h-[60vh] w-auto object-contain rounded-xl"
+                            onError={(e) => {
+                              // If image fails to load, display fallback message
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2">
+                          <a
+                            href={viewingProofOrder.paymentProof}
+                            download={`Payment_Proof_${viewingProofOrder.orderId}.jpg`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Download / Save Image</span>
+                          </a>
+                          <a
+                            href={viewingProofOrder.paymentProof}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Open in New Tab</span>
+                          </a>
+                        </div>
                       </div>
                     )}
 

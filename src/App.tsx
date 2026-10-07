@@ -72,7 +72,7 @@ const INITIAL_ORDERS: CustomerOrder[] = [
     subtotalUSD: 80.91,
     discountUSD: 8.09,
     totalUSD: 72.82,
-    paymentMethod: 'Credit/Debit Card (Stripe USA)',
+    paymentMethod: 'Citibank Local Transfer (USA)',
     status: 'delivered',
     createdAt: 'Today, 01:14 AM',
     credentials: {
@@ -97,7 +97,7 @@ const INITIAL_ORDERS: CustomerOrder[] = [
     subtotalUSD: 39.98,
     discountUSD: 0,
     totalUSD: 39.98,
-    paymentMethod: 'Apple Pay Express',
+    paymentMethod: 'USDT (TRC20 Network)',
     status: 'delivered',
     createdAt: 'Yesterday, 04:32 PM',
     credentials: {
@@ -121,7 +121,7 @@ const INITIAL_ORDERS: CustomerOrder[] = [
     subtotalUSD: 29.67,
     discountUSD: 2.97,
     totalUSD: 26.70,
-    paymentMethod: 'PayPal Verified',
+    paymentMethod: 'Citibank Local Transfer (USA)',
     status: 'delivered',
     createdAt: '2 days ago',
     credentials: {

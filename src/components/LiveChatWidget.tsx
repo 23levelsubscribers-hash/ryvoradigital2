@@ -39,7 +39,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
     'How does instant delivery work?',
     'Can I upgrade my existing personal email?',
     'What replacement warranty is included?',
-    'Which US payment methods do you accept?',
+    'Which payment methods do you accept?',
   ];
 
   const handleSend = (textToSend?: string) => {
@@ -67,8 +67,8 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
         reply = "Yes! For Canva Pro, Figma Pro, Coursera, and LinkedIn, we send an official workspace upgrade invite directly to your personal email, so you keep all your files, designs, and folders.";
       } else if (lower.includes('warranty') || lower.includes('replace') || lower.includes('stop')) {
         reply = "🛡️ Every single purchase includes our 100% Full-Term Replacement Warranty. If any tool ever has an issue during your subscription, our team replaces or reactivates it within 15 minutes at zero cost.";
-      } else if (lower.includes('payment') || lower.includes('card') || lower.includes('apple') || lower.includes('paypal')) {
-        reply = "💳 For our USA customers, we accept all major Credit/Debit cards (Visa, Mastercard, Amex via Stripe), Apple Pay, Google Pay, PayPal, and Crypto USDT/BTC.";
+      } else if (lower.includes('payment') || lower.includes('bank') || lower.includes('usdt') || lower.includes('crypto') || lower.includes('card') || lower.includes('apple') || lower.includes('paypal')) {
+        reply = "💳 We accept two official payment methods: 1) Citibank Local Bank Transfer (ACH / Wire) and 2) Crypto USDT (TRC20 Network). Details and instant proof upload are available directly in your checkout drawer!";
       }
 
       const agentMsg: ChatMessage = {

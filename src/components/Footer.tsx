@@ -244,14 +244,15 @@ export const Footer: React.FC<FooterProps> = ({
             </span>
           </div>
 
-          {/* Accepted USA Payment Badges */}
+          {/* Accepted Payment Badges */}
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="text-slate-500">SECURE PAYMENTS:</span>
-            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-semibold">Visa</span>
-            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-semibold">Mastercard</span>
-            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-semibold">Apple Pay</span>
-            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-semibold">PayPal</span>
-            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-amber-400 font-semibold">Crypto USDT</span>
+            <span className="text-slate-500">PAYMENT OPTIONS:</span>
+            <span className="px-2.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 font-semibold flex items-center gap-1.5">
+              <span>🏦</span> Citibank (Local Transfer)
+            </span>
+            <span className="px-2.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-semibold flex items-center gap-1.5">
+              <span>₮</span> USDT (TRC20 Network)
+            </span>
           </div>
 
         </div>

@@ -5,7 +5,7 @@ import { formatPrice } from '../utils/currency';
 import { apiCreateOrder, apiUploadProof } from '../utils/api';
 import { firestoreCreateOrder } from '../lib/firebase';
 
-function compressImage(file: File, maxWidth = 1600, quality = 0.82): Promise<string> {
+function compressImage(file: File, maxWidth = 900, quality = 0.72): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -63,7 +63,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [selectedPayment, setSelectedPayment] = useState<'card' | 'applepay' | 'paypal' | 'crypto' | 'bank'>('bank');
+  const [selectedPayment, setSelectedPayment] = useState<'bank' | 'crypto'>('bank');
   const [transactionId, setTransactionId] = useState('');
   const [paymentProof, setPaymentProof] = useState<string | null>(null);
   const [paymentProofName, setPaymentProofName] = useState<string>('');
@@ -146,14 +146,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     setIsUploadingProof(true);
 
     try {
-      const compressedData = await compressImage(file);
-      try {
-        const proofUrl = await apiUploadProof(compressedData, file.name);
-        setPaymentProof(proofUrl);
-      } catch {
-        // Fallback to inline compressed image
-        setPaymentProof(compressedData);
-      }
+      const compressedData = await compressImage(file, 900, 0.72);
+      setPaymentProof(compressedData);
     } catch (err: any) {
       console.warn('Compression error, attempting direct file read:', err);
       const reader = new FileReader();
@@ -177,7 +171,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   };
 
   const paymentDetailsMap: Record<
-    string,
+    'bank' | 'crypto',
     {
       name: string;
       address: string;
@@ -191,13 +185,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       accountType?: string;
       swiftCode?: string;
       transferType?: string;
+      bankAddress?: string;
+      cryptoNetwork?: string;
     }
   > = {
-    card: {
-      name: 'Credit/Debit Card (Direct Wire / Citibank)',
+    bank: {
+      name: 'Citibank Local Transfer (USA)',
       address: 'Bank: Citibank | Beneficiary: Usman Ghani | Routing: 031100209 | Acc #: 70587190002673170',
       shortCopy: '70587190002673170',
-      instructions: 'Transfer the order amount to our Citibank account and attach screenshot or enter Transaction ID.',
+      instructions: 'Transfer the order amount to our Citibank account via ACH or wire. Enter reference or attach screenshot.',
       isBank: true,
       bankName: 'Citibank',
       accountTitle: 'Usman Ghani',
@@ -206,42 +202,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       accountType: 'CHECKING',
       swiftCode: 'CITIUS33',
       transferType: 'Local transfer',
-    },
-    applepay: {
-      name: 'Apple Pay / Zelle / Cash App',
-      address: 'Zelle / Apple Pay: +1 (512) 883-9120 ($RyvoraUSA)',
-      shortCopy: '+15128839120',
-      instructions: 'Send to our US Zelle/Apple Pay number and enter sender name or upload screenshot.',
-    },
-    paypal: {
-      name: 'PayPal (Family & Friends / Business)',
-      address: 'payments@ryvoradigital.com',
-      shortCopy: 'payments@ryvoradigital.com',
-      instructions: 'Send payment to PayPal address and enter reference ID or attach screenshot.',
+      bankAddress: '111 Wall Street New York, NY 10043 USA',
     },
     crypto: {
-      name: 'Crypto USDT (TRC20 Network)',
-      address: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
-      shortCopy: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
-      instructions: 'Send USDT (TRC20) and enter transaction hash or upload confirmation screenshot.',
-    },
-    bank: {
-      name: 'Citibank Local Transfer (ACH / Domestic Wire)',
-      address: 'Bank: Citibank | Beneficiary: Usman Ghani | Routing: 031100209 | Acc #: 70587190002673170',
-      shortCopy: '70587190002673170',
-      instructions: 'Transfer via local US bank transfer / ACH / wire. Enter reference or attach screenshot.',
-      isBank: true,
-      bankName: 'Citibank',
-      accountTitle: 'Usman Ghani',
-      accountNumber: '70587190002673170',
-      routingNumber: '031100209',
-      accountType: 'CHECKING',
-      swiftCode: 'CITIUS33',
-      transferType: 'Local transfer',
+      name: 'USDT (TRC20 Network)',
+      address: 'TDL5DcGTb99Aer5T3xvNgBxThj9RJqhwz7',
+      shortCopy: 'TDL5DcGTb99Aer5T3xvNgBxThj9RJqhwz7',
+      instructions: 'Send USDT via TRC20 (Tron) network only. Enter your Transaction Hash (TxID) or upload screenshot below.',
+      cryptoNetwork: 'TRC20 (Tron Network)',
     },
   };
 
-  const currentPayInfo = paymentDetailsMap[selectedPayment] || paymentDetailsMap.card;
+  const currentPayInfo = paymentDetailsMap[selectedPayment] || paymentDetailsMap.bank;
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -253,18 +225,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     setFormError('');
     setIsSubmitting(true);
 
-    let finalProof: string | undefined = undefined;
-    if (paymentProof && typeof paymentProof === 'string' && paymentProof.trim()) {
-      finalProof = paymentProof;
-      // If proof is data url, try upload in background, but don't block order
-      if (finalProof.startsWith('data:image/')) {
-        try {
-          finalProof = await apiUploadProof(finalProof, paymentProofName || 'screenshot.jpg');
-        } catch (uploadErr) {
-          console.warn('Pre-checkout upload warning, proceeding with order:', uploadErr);
-        }
-      }
-    }
+    const finalProof = paymentProof && typeof paymentProof === 'string' && paymentProof.trim()
+      ? paymentProof.trim()
+      : undefined;
 
     try {
       const newOrder = await apiCreateOrder({
@@ -516,75 +479,46 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   Select Payment Method:
                 </label>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs mb-3">
+                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
                   <button
                     type="button"
-                    onClick={() => setSelectedPayment('card')}
-                    className={`p-2.5 rounded-xl border text-left flex items-center gap-2 cursor-pointer transition-all ${
-                      selectedPayment === 'card'
-                        ? 'border-cyan-400 bg-cyan-950/40 text-white shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                    onClick={() => setSelectedPayment('bank')}
+                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 cursor-pointer transition-all ${
+                      selectedPayment === 'bank'
+                        ? 'border-cyan-400 bg-cyan-950/50 text-white shadow-[0_0_12px_rgba(6,182,212,0.25)] ring-1 ring-cyan-500/50'
                         : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    <CreditCard className="w-4 h-4 text-cyan-400 shrink-0" />
-                    <span className="font-semibold text-[11px]">Card / Stripe</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPayment('applepay')}
-                    className={`p-2.5 rounded-xl border text-left flex items-center gap-2 cursor-pointer transition-all ${
-                      selectedPayment === 'applepay'
-                        ? 'border-cyan-400 bg-cyan-950/40 text-white shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                        : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <Zap className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="font-semibold text-[11px]">Zelle / Apple Pay</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPayment('paypal')}
-                    className={`p-2.5 rounded-xl border text-left flex items-center gap-2 cursor-pointer transition-all ${
-                      selectedPayment === 'paypal'
-                        ? 'border-cyan-400 bg-cyan-950/40 text-white shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                        : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <span className="font-bold text-blue-400 text-xs shrink-0">P</span>
-                    <span className="font-semibold text-[11px]">PayPal</span>
+                    <div className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">
+                      🏦
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-bold text-xs block text-white">Bank Transfer</span>
+                      <span className="text-[10px] text-cyan-400 font-medium block truncate">Citibank (USA)</span>
+                    </div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setSelectedPayment('crypto')}
-                    className={`p-2.5 rounded-xl border text-left flex items-center gap-2 cursor-pointer transition-all ${
+                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 cursor-pointer transition-all ${
                       selectedPayment === 'crypto'
-                        ? 'border-cyan-400 bg-cyan-950/40 text-white shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                        ? 'border-emerald-400 bg-emerald-950/50 text-white shadow-[0_0_12px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500/50'
                         : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    <span className="font-bold text-amber-400 text-xs shrink-0">₮</span>
-                    <span className="font-semibold text-[11px]">USDT (TRC20)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPayment('bank')}
-                    className={`p-2.5 rounded-xl border text-left flex items-center gap-2 cursor-pointer transition-all col-span-2 sm:col-span-1 ${
-                      selectedPayment === 'bank'
-                        ? 'border-cyan-400 bg-cyan-950/40 text-white shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                        : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="font-semibold text-[11px]">Bank (Citibank)</span>
+                    <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">
+                      ₮
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-bold text-xs block text-white">USDT (Crypto)</span>
+                      <span className="text-[10px] text-emerald-400 font-medium block truncate">TRC20 Network</span>
+                    </div>
                   </button>
                 </div>
 
                 {/* Selected Payment Instructions Card */}
-                {currentPayInfo.isBank ? (
+                {selectedPayment === 'bank' ? (
                   <div className="p-3.5 rounded-2xl bg-gradient-to-b from-[#0a101d] to-[#080c16] border border-cyan-500/40 text-xs space-y-2.5 shadow-lg">
                     <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                       <div className="flex items-center gap-2">
@@ -677,23 +611,46 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     </p>
                   </div>
                 ) : (
-                  <div className="p-3.5 rounded-xl bg-slate-950 border border-cyan-500/30 text-xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-cyan-300 text-[11px] uppercase tracking-wider">
-                        Send Payment To / Details:
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-b from-[#0a1813] to-[#08110e] border border-emerald-500/40 text-xs space-y-2.5 shadow-lg">
+                    <div className="flex items-center justify-between pb-2 border-b border-emerald-900/40">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                          ₮
+                        </div>
+                        <span className="font-extrabold text-white text-xs">
+                          USDT (Tether USD)
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                        TRC20 Network
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyPaymentInfo(currentPayInfo.shortCopy, 'main')}
-                        className="text-[10px] text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
-                      >
-                        {copiedKey === 'main' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                        <span>{copiedKey === 'main' ? 'Copied' : 'Copy'}</span>
-                      </button>
                     </div>
 
-                    <div className="font-mono text-[11px] text-slate-200 bg-slate-900/80 p-2 rounded-lg border border-slate-800 select-all break-all">
-                      {currentPayInfo.address}
+                    <div className="p-3 rounded-xl bg-slate-950/90 border border-emerald-500/40 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                          TRC20 Deposit Address:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPaymentInfo(currentPayInfo.address, 'crypto_addr')}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                        >
+                          {copiedKey === 'crypto_addr' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedKey === 'crypto_addr' ? 'Copied' : 'Copy'}</span>
+                        </button>
+                      </div>
+
+                      <div className="font-mono text-xs text-white bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 select-all break-all tracking-wide font-semibold text-center sm:text-left">
+                        {currentPayInfo.address}
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-300/90 flex items-start gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400 mt-0.5" />
+                      <span>
+                        <strong>Important:</strong> Please ensure you send USDT strictly on the <strong>TRC20 (Tron)</strong> network. Sending via ERC20, BEP20, or other networks may result in lost funds.
+                      </span>
                     </div>
 
                     <p className="text-[10px] text-slate-400">

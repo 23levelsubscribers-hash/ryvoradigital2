@@ -24,7 +24,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({ policy, onClose }) => 
           </p>
           <h4 className="text-sm font-bold text-white uppercase tracking-wider text-cyan-400">2. Money-Back Guarantee</h4>
           <p>
-            If we are unable to resolve or replace an issue within 24 hours, you are entitled to a 100% full refund to your original payment method (Stripe Credit Card, Apple Pay, PayPal, or Crypto).
+            If we are unable to resolve or replace an issue within 24 hours, you are entitled to a 100% full refund to your original payment method (Citibank Bank Transfer or USDT TRC20).
           </p>
           <h4 className="text-sm font-bold text-white uppercase tracking-wider text-cyan-400">3. How to File a Claim</h4>
           <p>
@@ -82,7 +82,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({ policy, onClose }) => 
           </p>
           <h4 className="text-sm font-bold text-white uppercase tracking-wider text-cyan-400">1. Payment Data Security</h4>
           <p>
-            We never store customer credit card numbers or banking secrets on our servers. All transactions are processed through tokenized, Level 1 PCI-DSS certified payment processors (Stripe, Apple Pay, PayPal).
+            We never store customer private banking passwords or crypto private keys on our servers. All transactions are securely verified via direct Citibank transfer records and Tron TRC20 blockchain verification.
           </p>
           <h4 className="text-sm font-bold text-white uppercase tracking-wider text-cyan-400">2. Zero Telemetry & No Spam</h4>
           <p>
