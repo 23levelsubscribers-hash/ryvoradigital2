@@ -276,7 +276,16 @@ export async function apiTrackOrder(
 
 export async function apiUpdateOrder(
   orderId: string,
-  updates: { status?: string; credentials?: any; isNew?: boolean }
+  updates: {
+    status?: string;
+    credentials?: any;
+    isNew?: boolean;
+    licenseKey?: string;
+    accountEmail?: string;
+    accountPassword?: string;
+    deliveryInstructions?: string;
+    declineReason?: string;
+  }
 ): Promise<CustomerOrder | null> {
   try {
     const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}`, {

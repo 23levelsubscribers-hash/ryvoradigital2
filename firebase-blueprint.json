@@ -16,12 +16,14 @@
         "paymentMethod": { "type": "string", "description": "Selected payment method" },
         "paymentProof": { "type": "string", "description": "URL or indicator of receipt" },
         "transactionId": { "type": "string", "description": "Transaction reference" },
-        "status": { "type": "string", "enum": ["processing", "activated", "delivered"], "description": "Order fulfillment status" },
+        "status": { "type": "string", "enum": ["processing", "activated", "delivered", "cancelled", "declined"], "description": "Order fulfillment status" },
         "createdAt": { "type": "string", "description": "Human readable creation timestamp" },
         "updatedAt": { "type": "string", "description": "ISO timestamp of last update" },
         "licenseKey": { "type": "string", "description": "Dispatched license key" },
         "accountEmail": { "type": "string", "description": "Dispatched account email" },
+        "accountPassword": { "type": "string", "description": "Dispatched account password" },
         "deliveryInstructions": { "type": "string", "description": "Instructions for login" },
+        "declineReason": { "type": "string", "description": "Reason if order was declined" },
         "isNew": { "type": "boolean", "description": "Whether order is freshly placed" }
       },
       "required": ["orderId", "customerEmail", "totalUSD", "status", "createdAt"]

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, X, CheckCircle2, Clock, Mail, ShieldCheck, Key, AlertCircle, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Search, X, CheckCircle2, Clock, Mail, ShieldCheck, Key, AlertCircle, Loader2, Image as ImageIcon, Copy, Check, Eye, EyeOff, Ban, XCircle } from 'lucide-react';
 import { CustomerOrder } from '../types';
 import { apiTrackOrder } from '../utils/api';
 import { firestoreGetOrder } from '../lib/firebase';
@@ -20,6 +20,14 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({ isOpen, on
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [showFullProof, setShowFullProof] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, fieldName: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,15 +173,52 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({ isOpen, on
                 className={`text-[11px] font-bold px-2.5 py-1 rounded-full uppercase border ${
                   trackedOrder.status === 'delivered'
                     ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    : trackedOrder.status === 'activated'
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                    : trackedOrder.status === 'declined'
+                    ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                    : trackedOrder.status === 'cancelled'
+                    ? 'bg-slate-800 text-slate-400 border-slate-700'
                     : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                 }`}
               >
-                {trackedOrder.status === 'delivered' ? 'DELIVERED & ACTIVE' : 'PENDING VERIFICATION'}
+                {trackedOrder.status === 'delivered'
+                  ? 'DELIVERED & ACTIVE'
+                  : trackedOrder.status === 'activated'
+                  ? 'ACTIVATED'
+                  : trackedOrder.status === 'declined'
+                  ? 'DECLINED'
+                  : trackedOrder.status === 'cancelled'
+                  ? 'CANCELLED'
+                  : 'PENDING VERIFICATION'}
               </span>
             </div>
 
             {/* Stepper depending on status */}
-            {trackedOrder.status === 'processing' ? (
+            {trackedOrder.status === 'declined' ? (
+              <div className="p-3.5 rounded-xl bg-rose-950/30 border border-rose-500/30 text-rose-300 text-xs space-y-2">
+                <div className="font-bold flex items-center gap-1.5 text-rose-400">
+                  <Ban className="w-4 h-4 shrink-0" />
+                  <span>Order Declined by Staff</span>
+                </div>
+                <p className="text-[11px] text-slate-300">
+                  Reason: <strong className="text-rose-200">{trackedOrder.declineReason || 'Payment receipt or transaction details could not be verified.'}</strong>
+                </p>
+                <p className="text-[10px] text-slate-400">
+                  If you transferred payment, please contact our 24/7 Live Support with your payment receipt and Order ID for immediate re-activation.
+                </p>
+              </div>
+            ) : trackedOrder.status === 'cancelled' ? (
+              <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs space-y-1.5">
+                <div className="font-bold flex items-center gap-1.5 text-slate-400">
+                  <XCircle className="w-4 h-4 shrink-0" />
+                  <span>Order Cancelled</span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  This order has been cancelled. For inquiries or re-ordering, contact customer support.
+                </p>
+              </div>
+            ) : trackedOrder.status === 'processing' ? (
               <div className="space-y-3 pt-1 text-xs">
                 <div className="flex items-center gap-2.5 text-slate-200">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -268,21 +313,96 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({ isOpen, on
                 </span>
               </div>
 
-              {trackedOrder.credentials?.licenseKey && (
-                <div className="mt-2">
-                  <span className="text-[10px] text-slate-500 uppercase font-bold">Assigned License / Token:</span>
-                  <div className="p-2.5 rounded-lg bg-slate-950 font-mono text-[11px] text-cyan-400 break-all mt-1 select-all border border-slate-800">
-                    {trackedOrder.credentials.licenseKey}
+              {/* DISPATCHED ACCOUNT CREDENTIALS BOX */}
+              {(trackedOrder.credentials || trackedOrder.accountEmail || trackedOrder.accountPassword || trackedOrder.licenseKey) && (
+                <div className="mt-3 p-3.5 rounded-2xl bg-gradient-to-br from-cyan-950/30 to-blue-950/20 border border-cyan-500/30 space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2">
+                    <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                      <span>Allocated Account Credentials</span>
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold uppercase">
+                      Active
+                    </span>
                   </div>
-                </div>
-              )}
 
-              {trackedOrder.credentials?.instructions && (
-                <div className="mt-2">
-                  <span className="text-[10px] text-slate-500 uppercase font-bold">Dispatch Instructions:</span>
-                  <div className="p-2.5 rounded-lg bg-slate-950 text-[11px] text-slate-300 mt-1 border border-slate-800">
-                    {trackedOrder.credentials.instructions}
-                  </div>
+                  {/* Account Email */}
+                  {(trackedOrder.credentials?.accountEmail || trackedOrder.accountEmail) && (
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Account Email / Username:</span>
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 font-mono text-xs text-white border border-slate-800">
+                        <span className="truncate select-all">{trackedOrder.credentials?.accountEmail || trackedOrder.accountEmail}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(trackedOrder.credentials?.accountEmail || trackedOrder.accountEmail || '', 'email')}
+                          className="p-1 rounded text-slate-400 hover:text-cyan-400 transition-colors ml-2 shrink-0 cursor-pointer"
+                          title="Copy Email"
+                        >
+                          {copiedField === 'email' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Account Password */}
+                  {(trackedOrder.credentials?.accountPassword || trackedOrder.accountPassword) && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold">Account Password:</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
+                        >
+                          {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          <span>{showPassword ? 'Hide' : 'Show'}</span>
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 font-mono text-xs text-white border border-slate-800">
+                        <span className="select-all">
+                          {showPassword
+                            ? (trackedOrder.credentials?.accountPassword || trackedOrder.accountPassword)
+                            : '••••••••••••••••'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(trackedOrder.credentials?.accountPassword || trackedOrder.accountPassword || '', 'pass')}
+                          className="p-1 rounded text-slate-400 hover:text-cyan-400 transition-colors ml-2 shrink-0 cursor-pointer"
+                          title="Copy Password"
+                        >
+                          {copiedField === 'pass' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* License Key */}
+                  {(trackedOrder.credentials?.licenseKey || trackedOrder.licenseKey) && (
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Assigned License Key:</span>
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 font-mono text-xs text-cyan-400 border border-slate-800">
+                        <span className="truncate select-all">{trackedOrder.credentials?.licenseKey || trackedOrder.licenseKey}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(trackedOrder.credentials?.licenseKey || trackedOrder.licenseKey || '', 'key')}
+                          className="p-1 rounded text-slate-400 hover:text-cyan-400 transition-colors ml-2 shrink-0 cursor-pointer"
+                          title="Copy Key"
+                        >
+                          {copiedField === 'key' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Delivery Instructions */}
+                  {(trackedOrder.credentials?.instructions || trackedOrder.deliveryInstructions) && (
+                    <div className="pt-1">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Instructions:</span>
+                      <div className="p-2.5 rounded-xl bg-slate-950 text-xs text-slate-300 border border-slate-800 leading-relaxed whitespace-pre-wrap">
+                        {trackedOrder.credentials?.instructions || trackedOrder.deliveryInstructions}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

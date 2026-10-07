@@ -422,7 +422,16 @@ router.get('/orders/track', async (req: Request, res: Response) => {
 router.patch('/orders/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
     const orderId = req.params.id;
-    const { status, credentials, isNew, licenseKey, accountEmail, deliveryInstructions } = req.body || {};
+    const {
+      status,
+      credentials,
+      isNew,
+      licenseKey,
+      accountEmail,
+      accountPassword,
+      deliveryInstructions,
+      declineReason,
+    } = req.body || {};
 
     const updated = await updateOrder(orderId, {
       status,
@@ -430,7 +439,9 @@ router.patch('/orders/:id', requireAdmin, async (req: Request, res: Response) =>
       isNew,
       licenseKey,
       accountEmail,
+      accountPassword,
       deliveryInstructions,
+      declineReason,
     });
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Order not found.' });

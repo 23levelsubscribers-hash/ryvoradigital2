@@ -536,7 +536,9 @@ function mapOrderRow(row: any): CustomerOrder & { isNew?: boolean } {
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
     licenseKey: row.license_key || (creds?.licenseKey || undefined),
     accountEmail: row.account_email || (creds?.accountEmail || undefined),
+    accountPassword: row.account_password || (creds?.accountPassword || undefined),
     deliveryInstructions: row.delivery_instructions || (creds?.instructions || undefined),
+    declineReason: row.decline_reason || undefined,
     credentials: creds,
     isNew: row.is_new ?? false,
   };
@@ -589,6 +591,7 @@ export async function createOrder(order: CustomerOrder & { isNew?: boolean }): P
       const creds = order.credentials || {
         licenseKey: order.licenseKey || '',
         accountEmail: order.accountEmail || '',
+        accountPassword: order.accountPassword || '',
         instructions: order.deliveryInstructions || '',
       };
 
@@ -642,7 +645,9 @@ export async function updateOrder(
     isNew?: boolean;
     licenseKey?: string;
     accountEmail?: string;
+    accountPassword?: string;
     deliveryInstructions?: string;
+    declineReason?: string;
   }
 ): Promise<CustomerOrder | null> {
   await initDatabase();
@@ -657,7 +662,9 @@ export async function updateOrder(
         const newIsNew = updates.isNew !== undefined ? updates.isNew : existing.isNew;
         const newLicense = updates.licenseKey || newCreds?.licenseKey || existing.licenseKey || '';
         const newAccEmail = updates.accountEmail || newCreds?.accountEmail || existing.accountEmail || '';
+        const newAccPass = updates.accountPassword || newCreds?.accountPassword || existing.accountPassword || '';
         const newInstructions = updates.deliveryInstructions || newCreds?.instructions || existing.deliveryInstructions || '';
+        const newDeclineReason = updates.declineReason || existing.declineReason || '';
         const nowIso = new Date().toISOString();
 
         await currentPool.query(
@@ -688,7 +695,9 @@ export async function updateOrder(
           credentials: newCreds,
           licenseKey: newLicense,
           accountEmail: newAccEmail,
+          accountPassword: newAccPass,
           deliveryInstructions: newInstructions,
+          declineReason: newDeclineReason,
           isNew: newIsNew,
           updatedAt: nowIso,
         };
@@ -711,7 +720,9 @@ export async function updateOrder(
   }
   if (updates.licenseKey) db.orders[idx].licenseKey = updates.licenseKey;
   if (updates.accountEmail) db.orders[idx].accountEmail = updates.accountEmail;
+  if (updates.accountPassword) db.orders[idx].accountPassword = updates.accountPassword;
   if (updates.deliveryInstructions) db.orders[idx].deliveryInstructions = updates.deliveryInstructions;
+  if (updates.declineReason) db.orders[idx].declineReason = updates.declineReason;
   if (updates.isNew !== undefined) db.orders[idx].isNew = updates.isNew;
   db.orders[idx].updatedAt = new Date().toISOString();
 

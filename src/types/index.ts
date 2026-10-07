@@ -62,15 +62,18 @@ export interface CustomerOrder {
   paymentMethod: string;
   paymentProof?: string;
   transactionId?: string;
-  status: 'processing' | 'activated' | 'delivered';
+  status: 'processing' | 'activated' | 'delivered' | 'cancelled' | 'declined';
   createdAt: string;
   updatedAt?: string;
   licenseKey?: string;
   accountEmail?: string;
+  accountPassword?: string;
   deliveryInstructions?: string;
+  declineReason?: string;
   credentials?: {
     licenseKey?: string;
     accountEmail?: string;
+    accountPassword?: string;
     instructions: string;
   };
   isNew?: boolean;

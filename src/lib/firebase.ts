@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   query,
   orderBy,
@@ -61,7 +62,9 @@ export async function firestoreCreateOrder(order: CustomerOrder): Promise<void> 
       updatedAt: new Date().toISOString(),
       licenseKey: order.licenseKey || order.credentials?.licenseKey || null,
       accountEmail: order.accountEmail || order.credentials?.accountEmail || null,
+      accountPassword: order.accountPassword || order.credentials?.accountPassword || null,
       deliveryInstructions: order.deliveryInstructions || order.credentials?.instructions || null,
+      declineReason: order.declineReason || null,
       credentials: order.credentials ? JSON.stringify(order.credentials) : null,
       isNew: true,
     };
@@ -104,10 +107,11 @@ export function firestoreSubscribeOrders(
             } catch {
               creds = undefined;
             }
-          } else if (data.licenseKey || data.accountEmail || data.deliveryInstructions) {
+          } else if (data.licenseKey || data.accountEmail || data.accountPassword || data.deliveryInstructions) {
             creds = {
               licenseKey: data.licenseKey || '',
               accountEmail: data.accountEmail || '',
+              accountPassword: data.accountPassword || '',
               instructions: data.deliveryInstructions || '',
             };
           }
@@ -129,7 +133,9 @@ export function firestoreSubscribeOrders(
             updatedAt: data.updatedAt || undefined,
             licenseKey: data.licenseKey || creds?.licenseKey || undefined,
             accountEmail: data.accountEmail || creds?.accountEmail || undefined,
+            accountPassword: data.accountPassword || creds?.accountPassword || undefined,
             deliveryInstructions: data.deliveryInstructions || creds?.instructions || undefined,
+            declineReason: data.declineReason || undefined,
             credentials: creds,
             isNew: data.isNew ?? false,
           });
@@ -184,6 +190,19 @@ export async function firestoreUpdateOrder(
 }
 
 /**
+ * Permanently deletes an order from Cloud Firestore.
+ */
+export async function firestoreDeleteOrder(orderId: string): Promise<void> {
+  try {
+    const orderDocRef = doc(db, ORDERS_COLLECTION, orderId);
+    await deleteDoc(orderDocRef);
+    console.log(`[Firestore] Order ${orderId} permanently deleted from cloud database.`);
+  } catch (err) {
+    console.warn(`[Firestore] Warning deleting order ${orderId}:`, err);
+  }
+}
+
+/**
  * Looks up a single order directly from Firestore for tracking.
  */
 export async function firestoreGetOrder(orderId: string): Promise<CustomerOrder | null> {
@@ -207,10 +226,11 @@ export async function firestoreGetOrder(orderId: string): Promise<CustomerOrder 
       } catch {
         creds = undefined;
       }
-    } else if (data.licenseKey || data.accountEmail || data.deliveryInstructions) {
+    } else if (data.licenseKey || data.accountEmail || data.accountPassword || data.deliveryInstructions) {
       creds = {
         licenseKey: data.licenseKey || '',
         accountEmail: data.accountEmail || '',
+        accountPassword: data.accountPassword || '',
         instructions: data.deliveryInstructions || '',
       };
     }
@@ -232,7 +252,9 @@ export async function firestoreGetOrder(orderId: string): Promise<CustomerOrder 
       updatedAt: data.updatedAt || undefined,
       licenseKey: data.licenseKey || creds?.licenseKey || undefined,
       accountEmail: data.accountEmail || creds?.accountEmail || undefined,
+      accountPassword: data.accountPassword || creds?.accountPassword || undefined,
       deliveryInstructions: data.deliveryInstructions || creds?.instructions || undefined,
+      declineReason: data.declineReason || undefined,
       credentials: creds,
       isNew: data.isNew ?? false,
     };

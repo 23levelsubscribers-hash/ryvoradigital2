@@ -8,8 +8,7 @@ service cloud.firestore {
 
     // Orders Collection - Synced live across all devices and laptops
     match /orders/{orderId} {
-      allow read, create, update: if true;
-      allow delete: if false;
+      allow read, create, update, delete: if true;
     }
 
     // System connection test

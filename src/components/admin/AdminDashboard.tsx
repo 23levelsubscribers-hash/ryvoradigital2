@@ -21,7 +21,21 @@ import {
   RefreshCw,
   ExternalLink,
   Copy,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Ban,
+  XCircle,
+  CheckCircle2,
+  ShieldAlert,
+  KeyRound,
+  Mail,
+  Lock,
+  Send,
+  Compass,
+  FileText,
+  CheckCheck,
+  RotateCcw,
 } from 'lucide-react';
 import { Product, CustomerOrder, CustomerReview, LiveActivation, PromoCoupon, CategoryId } from '../../types';
 import { RyvoraLogo } from '../RyvoraLogo';
@@ -40,7 +54,7 @@ import {
   apiDeleteActivation,
   apiUpdateAnnouncement,
 } from '../../utils/api';
-import { firestoreSubscribeOrders, firestoreUpdateOrder } from '../../lib/firebase';
+import { firestoreSubscribeOrders, firestoreUpdateOrder, firestoreDeleteOrder } from '../../lib/firebase';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -103,10 +117,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newActState, setNewActState] = useState('NY');
   const [newActDuration, setNewActDuration] = useState('1 Year License');
 
-  // License manual dispatch
-  const [dispatchOrderId, setDispatchOrderId] = useState<string | null>(null);
-  const [customKey, setCustomKey] = useState('');
-  const [customInstructions, setCustomInstructions] = useState('');
+  // License & Account Dispatch Modal State
+  const [dispatchOrder, setDispatchOrder] = useState<CustomerOrder | null>(null);
+  const [dispatchEmail, setDispatchEmail] = useState('');
+  const [dispatchPassword, setDispatchPassword] = useState('');
+  const [dispatchKey, setDispatchKey] = useState('');
+  const [dispatchInstructions, setDispatchInstructions] = useState('');
+  const [showDispatchPassword, setShowDispatchPassword] = useState(true);
+
+  // Decline Order Modal State
+  const [decliningOrder, setDecliningOrder] = useState<CustomerOrder | null>(null);
+  const [declineReasonText, setDeclineReasonText] = useState('Payment screenshot invalid or unreadable');
+
+  // Cancel Order Modal State
+  const [orderToCancel, setOrderToCancel] = useState<CustomerOrder | null>(null);
+
+  // Delete Order Modal State
+  const [orderToDelete, setOrderToDelete] = useState<CustomerOrder | null>(null);
+
+  // Order Search & Filter State
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'processing' | 'activated' | 'delivered' | 'cancelled' | 'declined'>('all');
+  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
+
+  // Admin Tracking Preview Modal State
+  const [adminTrackingOrder, setAdminTrackingOrder] = useState<CustomerOrder | null>(null);
+  const [adminTrackingShowPassword, setAdminTrackingShowPassword] = useState(false);
+  const [adminCopiedKey, setAdminCopiedKey] = useState<string | null>(null);
+
+  const copyAdminText = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setAdminCopiedKey(id);
+    setTimeout(() => setAdminCopiedKey(null), 2000);
+  };
+
   const [viewingProofOrder, setViewingProofOrder] = useState<CustomerOrder | null>(null);
 
   // Auto-refresh & notification polling state (12 seconds production interval)
@@ -153,6 +197,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const totalRevenue = orders.reduce((sum, o) => sum + o.totalUSD, 0) + 142890;
   const pendingOrders = orders.filter((o) => o.status === 'processing');
   const newOrdersCount = orders.filter((o) => (o as any).isNew || o.status === 'processing').length;
+
+  // Filtered orders & status counts for Orders Management
+  const filteredOrders = orders.filter((o) => {
+    const q = orderSearchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      o.orderId.toLowerCase().includes(q) ||
+      o.customerEmail.toLowerCase().includes(q) ||
+      (o.customerPhone && o.customerPhone.toLowerCase().includes(q)) ||
+      (o.transactionId && o.transactionId.toLowerCase().includes(q)) ||
+      (o.accountEmail && o.accountEmail.toLowerCase().includes(q)) ||
+      (o.credentials?.accountEmail && o.credentials.accountEmail.toLowerCase().includes(q)) ||
+      (o.licenseKey && o.licenseKey.toLowerCase().includes(q)) ||
+      (o.credentials?.licenseKey && o.credentials.licenseKey.toLowerCase().includes(q)) ||
+      o.items.some((i) => i.product.name.toLowerCase().includes(q));
+
+    const matchesStatus = orderStatusFilter === 'all' || o.status === orderStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const statusCounts = {
+    all: orders.length,
+    processing: orders.filter((o) => o.status === 'processing').length,
+    activated: orders.filter((o) => o.status === 'activated').length,
+    delivered: orders.filter((o) => o.status === 'delivered').length,
+    declined: orders.filter((o) => o.status === 'declined').length,
+    cancelled: orders.filter((o) => o.status === 'cancelled').length,
+  };
 
   // Filtered Products
   const filteredProducts = products.filter((p) => {
@@ -327,23 +399,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Dispatch Order
-  const handleDispatchOrder = async (orderId: string) => {
-    const assignedKey = customKey.trim() || `RYV-DISPATCH-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-    const newCreds = {
-      licenseKey: assignedKey,
-      instructions: customInstructions.trim() || 'Your account credentials and login instructions have been verified and dispatched by the administration team.',
+  // Open Dispatch Modal
+  const handleOpenDispatchModal = (order: CustomerOrder) => {
+    setDispatchOrder(order);
+    setDispatchEmail(order.accountEmail || order.credentials?.accountEmail || order.customerEmail || '');
+    setDispatchPassword(order.accountPassword || order.credentials?.accountPassword || '');
+    setDispatchKey(
+      order.licenseKey ||
+      order.credentials?.licenseKey ||
+      `RYV-${order.items[0]?.product.name.replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase() || 'PRO'}-${Math.random().toString(36).substring(2, 7).toUpperCase()}-US`
+    );
+    setDispatchInstructions(
+      order.deliveryInstructions ||
+      order.credentials?.instructions ||
+      'Your account credentials and login instructions have been verified and dispatched by the administration team.'
+    );
+    setShowDispatchPassword(true);
+  };
+
+  // Generate strong random password
+  const handleGeneratePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    let generated = 'Ryv';
+    for (let i = 0; i < 9; i++) {
+      generated += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setDispatchPassword(generated);
+  };
+
+  // Generate license key
+  const handleGenerateKey = (prefix = 'RYV') => {
+    const part1 = Math.random().toString(36).substring(2, 7).toUpperCase();
+    const part2 = Math.random().toString(36).substring(2, 7).toUpperCase();
+    setDispatchKey(`${prefix}-${part1}-${part2}-US`);
+  };
+
+  // Submit Dispatch
+  const handleConfirmDispatch = async (targetStatus: 'delivered' | 'activated' = 'delivered') => {
+    if (!dispatchOrder) return;
+    const orderId = dispatchOrder.orderId;
+    const creds = {
+      accountEmail: dispatchEmail.trim() || dispatchOrder.customerEmail,
+      accountPassword: dispatchPassword.trim() || undefined,
+      licenseKey: dispatchKey.trim() || undefined,
+      instructions: dispatchInstructions.trim() || 'Your account credentials have been verified and dispatched.',
     };
 
     const updated = orders.map((o) => {
       if (o.orderId === orderId) {
         return {
           ...o,
-          status: 'delivered' as const,
-          credentials: {
-            ...newCreds,
-            accountEmail: o.customerEmail,
-          },
+          status: targetStatus,
+          credentials: creds,
+          accountEmail: creds.accountEmail,
+          accountPassword: creds.accountPassword,
+          licenseKey: creds.licenseKey,
+          deliveryInstructions: creds.instructions,
           isNew: false,
         };
       }
@@ -351,46 +462,162 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
 
     onUpdateOrders(updated);
-    setDispatchOrderId(null);
-    setCustomKey('');
-    setCustomInstructions('');
+    if (adminTrackingOrder?.orderId === orderId) {
+      setAdminTrackingOrder(updated.find((o) => o.orderId === orderId) || null);
+    }
+    setDispatchOrder(null);
 
     try {
-      await apiUpdateOrder(orderId, { status: 'delivered', credentials: newCreds, isNew: false });
+      await apiUpdateOrder(orderId, {
+        status: targetStatus,
+        credentials: creds,
+        accountEmail: creds.accountEmail,
+        accountPassword: creds.accountPassword,
+        licenseKey: creds.licenseKey,
+        deliveryInstructions: creds.instructions,
+        isNew: false,
+      });
       await firestoreUpdateOrder(orderId, {
-        status: 'delivered',
-        credentials: { ...newCreds, accountEmail: updated.find(o => o.orderId === orderId)?.customerEmail || '' },
-        isNew: false
+        status: targetStatus,
+        credentials: creds,
+        accountEmail: creds.accountEmail,
+        accountPassword: creds.accountPassword,
+        licenseKey: creds.licenseKey,
+        deliveryInstructions: creds.instructions,
+        isNew: false,
       });
     } catch (err) {
       console.error('Error dispatching order on database:', err);
     }
   };
 
-  // Change Order Status
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
-    const updated = orders.map((o) =>
-      o.orderId === orderId ? { ...o, status: newStatus as any } : o
-    );
+  // Decline Order
+  const handleOpenDeclineModal = (order: CustomerOrder) => {
+    setDecliningOrder(order);
+    setDeclineReasonText('Payment screenshot invalid or unreadable');
+  };
+
+  const handleConfirmDecline = async () => {
+    if (!decliningOrder) return;
+    const orderId = decliningOrder.orderId;
+    const reason = declineReasonText.trim() || 'Payment could not be verified.';
+
+    const updated = orders.map((o) => {
+      if (o.orderId === orderId) {
+        return {
+          ...o,
+          status: 'declined' as const,
+          declineReason: reason,
+          isNew: false,
+        };
+      }
+      return o;
+    });
+
     onUpdateOrders(updated);
+    if (adminTrackingOrder?.orderId === orderId) {
+      setAdminTrackingOrder(updated.find((o) => o.orderId === orderId) || null);
+    }
+    setDecliningOrder(null);
 
     try {
-      await apiUpdateOrder(orderId, { status: newStatus });
-      await firestoreUpdateOrder(orderId, { status: newStatus as any });
+      await apiUpdateOrder(orderId, { status: 'declined', declineReason: reason, isNew: false });
+      await firestoreUpdateOrder(orderId, { status: 'declined', declineReason: reason, isNew: false });
+    } catch (err) {
+      console.error('Error declining order on database:', err);
+    }
+  };
+
+  // Cancel Order Modal Handlers
+  const handleOpenCancelModal = (order: CustomerOrder) => {
+    setOrderToCancel(order);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!orderToCancel) return;
+    const orderId = orderToCancel.orderId;
+
+    const updated = orders.map((o) => {
+      if (o.orderId === orderId) {
+        return {
+          ...o,
+          status: 'cancelled' as const,
+          isNew: false,
+        };
+      }
+      return o;
+    });
+
+    onUpdateOrders(updated);
+    if (adminTrackingOrder?.orderId === orderId) {
+      setAdminTrackingOrder(updated.find((o) => o.orderId === orderId) || null);
+    }
+    setOrderToCancel(null);
+
+    try {
+      await apiUpdateOrder(orderId, { status: 'cancelled', isNew: false });
+      await firestoreUpdateOrder(orderId, { status: 'cancelled', isNew: false });
+    } catch (err) {
+      console.error('Error cancelling order:', err);
+    }
+  };
+
+  // Change Order Status
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    const targetOrder = orders.find((o) => o.orderId === orderId);
+    if (!targetOrder) return;
+
+    if (newStatus === 'declined') {
+      handleOpenDeclineModal(targetOrder);
+      return;
+    }
+    if (newStatus === 'cancelled') {
+      handleOpenCancelModal(targetOrder);
+      return;
+    }
+    if (newStatus === 'delivered' && !targetOrder.accountEmail && !targetOrder.credentials?.accountEmail) {
+      handleOpenDispatchModal(targetOrder);
+      return;
+    }
+
+    const updated = orders.map((o) =>
+      o.orderId === orderId ? { ...o, status: newStatus as any, isNew: false } : o
+    );
+    onUpdateOrders(updated);
+    if (adminTrackingOrder?.orderId === orderId) {
+      setAdminTrackingOrder(updated.find((o) => o.orderId === orderId) || null);
+    }
+
+    try {
+      await apiUpdateOrder(orderId, { status: newStatus, isNew: false });
+      await firestoreUpdateOrder(orderId, { status: newStatus as any, isNew: false });
     } catch (err) {
       console.error('Error updating order status on database:', err);
     }
   };
 
-  // Delete Order
-  const handleDeleteOrder = async (orderId: string) => {
-    if (confirm(`Permanently remove order ${orderId} from production database?`)) {
-      onUpdateOrders(orders.filter((o) => o.orderId !== orderId));
-      try {
-        await apiDeleteOrder(orderId);
-      } catch (err) {
-        console.error('Error deleting order on database:', err);
-      }
+  // Delete Order permanently Modal Handlers
+  const handleOpenDeleteModal = (order: CustomerOrder) => {
+    setOrderToDelete(order);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!orderToDelete) return;
+    const orderId = orderToDelete.orderId;
+
+    onUpdateOrders(orders.filter((o) => o.orderId !== orderId));
+    if (adminTrackingOrder?.orderId === orderId) {
+      setAdminTrackingOrder(null);
+    }
+    setOrderToDelete(null);
+
+    try {
+      await Promise.all([
+        apiDeleteOrder(orderId),
+        firestoreDeleteOrder(orderId),
+      ]);
+    } catch (err) {
+      console.error('Error deleting order on database:', err);
     }
   };
 
@@ -973,155 +1200,349 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* TAB 3: CUSTOMER ORDERS & KEY DISPATCH */}
           {activeTab === 'orders' && (
             <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-black text-white font-display">Customer Orders & License Dispatch</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Manage customer purchases, dispatch credentials, and monitor warranty status.</p>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-black text-white font-display">Customer Orders & License Dispatch</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Manage orders, dispatch account credentials (Email & Password), track live delivery, and cancel/decline/delete orders.</p>
+                </div>
+
+                {/* Search Bar */}
+                <div className="flex items-center gap-2">
+                  <div className="relative w-full sm:w-80">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search Order ID, Email, Key, Ref..."
+                      value={orderSearchQuery}
+                      onChange={(e) => setOrderSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                    />
+                    {orderSearchQuery && (
+                      <button
+                        onClick={() => setOrderSearchQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-3xl bg-[#090d16] border border-slate-800 overflow-hidden">
+              {/* Status Filter Tabs */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+                {(['all', 'processing', 'delivered', 'activated', 'declined', 'cancelled'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setOrderStatusFilter(filter)}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                      orderStatusFilter === filter
+                        ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                        : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                    }`}
+                  >
+                    <span className="capitalize">{filter === 'all' ? 'All Orders' : filter}</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      orderStatusFilter === filter ? 'bg-slate-950 text-cyan-300 font-bold' : 'bg-slate-800 text-slate-300'
+                    }`}>
+                      {statusCounts[filter]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="rounded-3xl bg-[#090d16] border border-slate-800 overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-slate-300">
                     <thead>
                       <tr className="border-b border-slate-800 bg-slate-950/60 text-[11px] uppercase font-bold text-slate-500">
                         <th className="p-4">Order ID & Date</th>
-                        <th className="p-4">Customer Email</th>
+                        <th className="p-4">Customer Contact</th>
                         <th className="p-4">Payment Proof</th>
                         <th className="p-4">Tools Purchased</th>
                         <th className="p-4">Payment Method</th>
                         <th className="p-4">Total</th>
-                        <th className="p-4">Status & License</th>
+                        <th className="p-4">Status & Dispatched Credentials</th>
                         <th className="p-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
-                      {orders.map((ord) => (
-                        <tr key={ord.orderId} className={`hover:bg-slate-900/30 ${(ord as any).isNew ? 'bg-cyan-950/20' : ''}`}>
-                          <td className="p-4">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              <span className="font-mono text-cyan-400 font-bold block">{ord.orderId}</span>
-                              {((ord as any).isNew || ord.status === 'processing') && (
-                                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse">
-                                  NEW
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[10px] text-slate-500">{ord.createdAt}</span>
-                          </td>
-
-                          <td className="p-4">
-                            <span className="font-medium text-white">{ord.customerEmail}</span>
-                            {ord.customerPhone && (
-                              <span className="block text-[10px] text-slate-400 font-mono">{ord.customerPhone}</span>
-                            )}
-                          </td>
-
-                          <td className="p-4">
-                            {ord.paymentProof ? (
-                              <div className="flex items-center gap-2">
-                                <img
-                                  src={ord.paymentProof}
-                                  alt="Proof Screenshot"
-                                  onClick={() => setViewingProofOrder(ord)}
-                                  className="w-12 h-12 object-cover rounded-lg border border-slate-700 hover:border-cyan-400 cursor-pointer shadow-sm hover:scale-105 transition-transform"
-                                  title="Click to view full screenshot"
-                                />
-                                <div className="text-[10px]">
-                                  <button
-                                    onClick={() => setViewingProofOrder(ord)}
-                                    className="text-cyan-400 hover:text-cyan-300 font-semibold block cursor-pointer"
-                                  >
-                                    View Proof
-                                  </button>
-                                  {ord.transactionId && (
-                                    <span className="text-slate-400 font-mono block truncate max-w-[100px]" title={ord.transactionId}>
-                                      Ref: {ord.transactionId}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-[10px] text-slate-500 italic">No receipt attached</span>
-                            )}
-                          </td>
-
-                          <td className="p-4">
-                            <div className="space-y-1">
-                              {ord.items.map((i, idx) => (
-                                <div key={idx} className="font-semibold text-slate-200">
-                                  {i.product.name} ({i.duration.replace('_', ' ')})
-                                </div>
-                              ))}
-                            </div>
-                          </td>
-
-                          <td className="p-4 text-slate-400">
-                            {ord.paymentMethod}
-                          </td>
-
-                          <td className="p-4 font-bold text-emerald-400 tabular-nums">
-                            ${ord.totalUSD.toFixed(2)}
-                          </td>
-
-                          <td className="p-4">
-                            <div className="flex flex-col gap-1">
-                              <select
-                                value={ord.status}
-                                onChange={(e) => handleStatusChange(ord.orderId, e.target.value)}
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border bg-slate-900 cursor-pointer focus:outline-none ${
-                                  ord.status === 'delivered' || ord.status === 'activated'
-                                    ? 'text-emerald-400 border-emerald-500/30'
-                                    : 'text-amber-300 border-amber-500/30'
-                                }`}
-                              >
-                                <option value="processing">PROCESSING</option>
-                                <option value="activated">ACTIVATED</option>
-                                <option value="delivered">DELIVERED</option>
-                              </select>
-                              {ord.credentials?.licenseKey && (
-                                <div className="font-mono text-[10px] text-slate-400 truncate max-w-[140px] select-all" title={ord.credentials.licenseKey}>
-                                  {ord.credentials.licenseKey}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="p-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {ord.status !== 'delivered' ? (
+                      {filteredOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="p-12 text-center text-slate-500">
+                            <div className="max-w-sm mx-auto space-y-2">
+                              <ShoppingBag className="w-10 h-10 mx-auto text-slate-700" />
+                              <p className="font-semibold text-slate-400 text-sm">No orders matching your criteria</p>
+                              <p className="text-xs text-slate-500">
+                                {orderSearchQuery ? `No results for "${orderSearchQuery}" in ${orderStatusFilter} orders.` : 'No orders in this status category.'}
+                              </p>
+                              {(orderSearchQuery || orderStatusFilter !== 'all') && (
                                 <button
                                   onClick={() => {
-                                    setDispatchOrderId(ord.orderId);
-                                    setCustomKey(ord.credentials?.licenseKey || `RYV-${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
-                                    setCustomInstructions('Your payment has been verified. Account credentials dispatched successfully.');
+                                    setOrderSearchQuery('');
+                                    setOrderStatusFilter('all');
                                   }}
-                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] cursor-pointer shadow-sm"
+                                  className="mt-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold cursor-pointer"
                                 >
-                                  Verify & Dispatch
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => {
-                                    setDispatchOrderId(ord.orderId);
-                                    setCustomKey(ord.credentials?.licenseKey || '');
-                                    setCustomInstructions(ord.credentials?.instructions || '');
-                                  }}
-                                  className="text-[11px] text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-900 border border-slate-800 cursor-pointer"
-                                >
-                                  Edit Key
+                                  Clear Filters
                                 </button>
                               )}
-
-                              <button
-                                onClick={() => handleDeleteOrder(ord.orderId)}
-                                className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                                title="Delete Order"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
                             </div>
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        filteredOrders.map((ord) => (
+                          <tr key={ord.orderId} className={`hover:bg-slate-900/30 ${(ord as any).isNew ? 'bg-cyan-950/20' : ''}`}>
+                            <td className="p-4">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className="font-mono text-cyan-400 font-bold block">{ord.orderId}</span>
+                                {((ord as any).isNew || ord.status === 'processing') && (
+                                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse">
+                                    NEW
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-slate-500">{ord.createdAt}</span>
+                            </td>
+
+                            <td className="p-4">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-white">{ord.customerEmail}</span>
+                                <button
+                                  onClick={() => copyAdminText(ord.customerEmail, `email-${ord.orderId}`)}
+                                  className="text-slate-500 hover:text-cyan-400 p-0.5 cursor-pointer"
+                                  title="Copy Email"
+                                >
+                                  {adminCopiedKey === `email-${ord.orderId}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                </button>
+                              </div>
+                              {ord.customerPhone && (
+                                <span className="block text-[10px] text-slate-400 font-mono mt-0.5">{ord.customerPhone}</span>
+                              )}
+                            </td>
+
+                            <td className="p-4">
+                              {ord.paymentProof ? (
+                                <div className="flex items-center gap-2">
+                                  <img
+                                    src={ord.paymentProof}
+                                    alt="Proof Screenshot"
+                                    onClick={() => setViewingProofOrder(ord)}
+                                    className="w-12 h-12 object-cover rounded-lg border border-slate-700 hover:border-cyan-400 cursor-pointer shadow-sm hover:scale-105 transition-transform"
+                                    title="Click to view full screenshot"
+                                  />
+                                  <div className="text-[10px]">
+                                    <button
+                                      onClick={() => setViewingProofOrder(ord)}
+                                      className="text-cyan-400 hover:text-cyan-300 font-semibold block cursor-pointer"
+                                    >
+                                      View Proof
+                                    </button>
+                                    {ord.transactionId && (
+                                      <span className="text-slate-400 font-mono block truncate max-w-[100px]" title={ord.transactionId}>
+                                        Ref: {ord.transactionId}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-slate-500 italic">No receipt attached</span>
+                              )}
+                            </td>
+
+                            <td className="p-4">
+                              <div className="space-y-1">
+                                {ord.items.map((i, idx) => (
+                                  <div key={idx} className="font-semibold text-slate-200">
+                                    {i.product.name} ({i.duration.replace('_', ' ')})
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+
+                            <td className="p-4 text-slate-400">
+                              {ord.paymentMethod}
+                            </td>
+
+                            <td className="p-4 font-bold text-emerald-400 tabular-nums">
+                              ${ord.totalUSD.toFixed(2)}
+                            </td>
+
+                            <td className="p-4">
+                              <div className="flex flex-col gap-1.5 min-w-[190px]">
+                                <select
+                                  value={ord.status}
+                                  onChange={(e) => handleStatusChange(ord.orderId, e.target.value)}
+                                  className={`text-[10px] font-bold px-2 py-1 rounded-lg border bg-slate-900 cursor-pointer focus:outline-none ${
+                                    ord.status === 'delivered'
+                                      ? 'text-emerald-400 border-emerald-500/40 bg-emerald-950/20'
+                                      : ord.status === 'activated'
+                                      ? 'text-cyan-300 border-cyan-500/40 bg-cyan-950/20'
+                                      : ord.status === 'declined'
+                                      ? 'text-rose-400 border-rose-500/40 bg-rose-950/20'
+                                      : ord.status === 'cancelled'
+                                      ? 'text-slate-400 border-slate-700 bg-slate-900'
+                                      : 'text-amber-300 border-amber-500/40 bg-amber-950/20'
+                                  }`}
+                                >
+                                  <option value="processing">PROCESSING</option>
+                                  <option value="activated">ACTIVATED</option>
+                                  <option value="delivered">DELIVERED</option>
+                                  <option value="cancelled">CANCELLED</option>
+                                  <option value="declined">DECLINED</option>
+                                </select>
+
+                                {/* Allocated Credentials Badges (Email & Password) */}
+                                <div className="space-y-1 text-[10px] bg-slate-950/60 p-2 rounded-xl border border-slate-800/80">
+                                  {/* Dispatched Email */}
+                                  {(ord.accountEmail || ord.credentials?.accountEmail) ? (
+                                    <div className="flex items-center justify-between text-slate-300" title={ord.accountEmail || ord.credentials?.accountEmail}>
+                                      <div className="flex items-center gap-1 truncate max-w-[130px]">
+                                        <Mail className="w-3 h-3 text-cyan-400 shrink-0" />
+                                        <span className="truncate font-mono">{ord.accountEmail || ord.credentials?.accountEmail}</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => copyAdminText(ord.accountEmail || ord.credentials?.accountEmail || '', `acc-email-${ord.orderId}`)}
+                                        className="text-slate-500 hover:text-cyan-400 p-0.5 cursor-pointer ml-1"
+                                        title="Copy Account Email"
+                                      >
+                                        {adminCopiedKey === `acc-email-${ord.orderId}` ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="text-slate-500 text-[9px] italic flex items-center gap-1">
+                                      <Mail className="w-2.5 h-2.5 text-slate-600 shrink-0" />
+                                      <span>Email not yet given</span>
+                                    </div>
+                                  )}
+
+                                  {/* Dispatched Password */}
+                                  {(ord.accountPassword || ord.credentials?.accountPassword) ? (
+                                    <div className="flex items-center justify-between text-amber-300 font-mono">
+                                      <div className="flex items-center gap-1">
+                                        <Lock className="w-3 h-3 text-amber-400 shrink-0" />
+                                        <span className="select-all">
+                                          {revealedPasswords[ord.orderId]
+                                            ? (ord.accountPassword || ord.credentials?.accountPassword)
+                                            : '••••••••'}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-0.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => setRevealedPasswords((prev) => ({ ...prev, [ord.orderId]: !prev[ord.orderId] }))}
+                                          className="text-slate-500 hover:text-amber-300 p-0.5 cursor-pointer"
+                                          title={revealedPasswords[ord.orderId] ? 'Hide Password' : 'Show Password'}
+                                        >
+                                          {revealedPasswords[ord.orderId] ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => copyAdminText(ord.accountPassword || ord.credentials?.accountPassword || '', `acc-pass-${ord.orderId}`)}
+                                          className="text-slate-500 hover:text-amber-300 p-0.5 cursor-pointer"
+                                          title="Copy Account Password"
+                                        >
+                                          {adminCopiedKey === `acc-pass-${ord.orderId}` ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="text-slate-500 text-[9px] italic flex items-center gap-1">
+                                      <Lock className="w-2.5 h-2.5 text-slate-600 shrink-0" />
+                                      <span>Password not yet given</span>
+                                    </div>
+                                  )}
+
+                                  {/* License Key */}
+                                  {(ord.licenseKey || ord.credentials?.licenseKey) && (
+                                    <div className="flex items-center justify-between text-emerald-400 font-mono text-[9px]" title={ord.licenseKey || ord.credentials?.licenseKey}>
+                                      <div className="flex items-center gap-1 truncate max-w-[130px]">
+                                        <KeyRound className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                                        <span className="truncate">{ord.licenseKey || ord.credentials?.licenseKey}</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => copyAdminText(ord.licenseKey || ord.credentials?.licenseKey || '', `key-${ord.orderId}`)}
+                                        className="text-slate-500 hover:text-emerald-300 p-0.5 cursor-pointer ml-1"
+                                        title="Copy Key"
+                                      >
+                                        {adminCopiedKey === `key-${ord.orderId}` ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {/* Decline Reason */}
+                                  {ord.declineReason && ord.status === 'declined' && (
+                                    <div className="text-[9px] text-rose-400 leading-tight pt-0.5 border-t border-rose-500/20">
+                                      <strong>Declined:</strong> {ord.declineReason}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="p-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                {/* 1. Track Order Button */}
+                                <button
+                                  onClick={() => setAdminTrackingOrder(ord)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/30 text-cyan-300 hover:text-white font-semibold text-[11px] cursor-pointer shadow-sm flex items-center gap-1 transition-colors"
+                                  title="Track live status and customer tracking preview"
+                                >
+                                  <Compass className="w-3.5 h-3.5 text-cyan-400" />
+                                  <span>Track</span>
+                                </button>
+
+                                {/* 2. Dispatch / Edit Credentials Button (Email & Password) */}
+                                <button
+                                  onClick={() => handleOpenDispatchModal(ord)}
+                                  className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] cursor-pointer shadow-sm flex items-center gap-1 transition-colors ${
+                                    ord.status === 'delivered'
+                                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                                      : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+                                  }`}
+                                  title={ord.status === 'delivered' ? 'Edit credentials & password' : 'Enter email, password and dispatch credentials'}
+                                >
+                                  <Send className="w-3.5 h-3.5" />
+                                  <span>{ord.status === 'delivered' ? 'Edit Credentials' : 'Dispatch'}</span>
+                                </button>
+
+                                {/* 3. Decline Order Button */}
+                                {ord.status !== 'declined' && (
+                                  <button
+                                    onClick={() => handleOpenDeclineModal(ord)}
+                                    className="p-1.5 text-rose-400 hover:text-white hover:bg-rose-500/20 border border-rose-500/30 rounded-lg transition-colors cursor-pointer"
+                                    title="Decline / Reject Order"
+                                  >
+                                    <Ban className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+
+                                {/* 4. Cancel Order Button */}
+                                {ord.status !== 'cancelled' && (
+                                  <button
+                                    onClick={() => handleOpenCancelModal(ord)}
+                                    className="p-1.5 text-amber-400 hover:text-white hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors cursor-pointer"
+                                    title="Cancel Order"
+                                  >
+                                    <XCircle className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+
+                                {/* 5. Delete Order Button */}
+                                <button
+                                  onClick={() => handleOpenDeleteModal(ord)}
+                                  className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                                  title="Permanently Delete Order"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1149,7 +1570,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                       <button
                         onClick={() => setViewingProofOrder(null)}
-                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -1165,88 +1586,724 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                     )}
 
-                    <div className="flex justify-end gap-3 text-xs">
+                    <div className="flex justify-between items-center text-xs">
                       <button
-                        onClick={() => setViewingProofOrder(null)}
-                        className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 cursor-pointer"
+                        onClick={() => {
+                          const ord = viewingProofOrder;
+                          setViewingProofOrder(null);
+                          setAdminTrackingOrder(ord);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-cyan-950 border border-cyan-500/40 text-cyan-300 hover:text-white font-semibold cursor-pointer flex items-center gap-1.5"
                       >
-                        Close
+                        <Compass className="w-4 h-4" />
+                        <span>Track Order View</span>
                       </button>
-                      {viewingProofOrder.status !== 'delivered' && (
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setViewingProofOrder(null)}
+                          className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 cursor-pointer"
+                        >
+                          Close
+                        </button>
                         <button
                           onClick={() => {
                             const ord = viewingProofOrder;
                             setViewingProofOrder(null);
-                            setDispatchOrderId(ord.orderId);
-                            setCustomKey(`RYV-${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
-                            setCustomInstructions('Your payment has been verified. Account credentials dispatched successfully.');
+                            handleOpenDispatchModal(ord);
                           }}
-                          className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer"
+                          className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer flex items-center gap-1.5"
                         >
-                          Proceed to Verify & Dispatch
+                          <Send className="w-4 h-4" />
+                          <span>Dispatch Credentials</span>
                         </button>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Dispatch Account Details Modal */}
-              {dispatchOrderId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-                  <div className="relative w-full max-w-lg rounded-3xl bg-[#090d16] border border-cyan-500/30 p-6 sm:p-7 shadow-2xl z-10">
-                    <h3 className="text-base font-bold text-white font-display mb-1">
-                      Verify Payment & Dispatch Account Details
-                    </h3>
-                    <p className="text-xs text-slate-400 mb-4">
-                      Order: <span className="font-mono text-cyan-400 font-bold">{dispatchOrderId}</span>
-                    </p>
-
-                    <div className="space-y-3.5 text-xs">
+              {/* MODAL 1: DISPATCH CREDENTIALS & EMAIL / PASSWORD MODAL */}
+              {dispatchOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
+                  <div className="fixed inset-0" onClick={() => setDispatchOrder(null)} />
+                  <div className="relative w-full max-w-lg rounded-3xl bg-[#090d16] border border-cyan-500/40 p-6 sm:p-7 shadow-2xl z-10 max-h-[90vh] overflow-y-auto">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                          Account Login Credentials / License Key / Access Token:
-                        </label>
+                        <h3 className="text-base font-bold text-white font-display flex items-center gap-2">
+                          <Send className="w-4 h-4 text-cyan-400" />
+                          <span>Dispatch Credentials & Account Details</span>
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Order: <span className="font-mono text-cyan-400 font-bold">{dispatchOrder.orderId}</span> · Customer: <span className="text-slate-300">{dispatchOrder.customerEmail}</span>
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setDispatchOrder(null)}
+                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Order summary chip */}
+                    <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800/80 mb-4 text-xs space-y-1">
+                      <div className="text-slate-300 font-medium flex justify-between">
+                        <span>Items: {dispatchOrder.items.map((i) => `${i.product.name} (${i.duration.replace('_', ' ')})`).join(', ')}</span>
+                        <strong className="text-emerald-400">${dispatchOrder.totalUSD.toFixed(2)}</strong>
+                      </div>
+                      <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                        <span>Payment: {dispatchOrder.paymentMethod}</span>
+                        {dispatchOrder.paymentProof && (
+                          <button
+                            type="button"
+                            onClick={() => setViewingProofOrder(dispatchOrder)}
+                            className="text-cyan-400 hover:underline cursor-pointer"
+                          >
+                            View Screenshot Receipt
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleConfirmDispatch('delivered');
+                      }}
+                      className="space-y-3.5 text-xs"
+                    >
+                      {/* 1. Account Email */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                            <Mail className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Account Email / Login Username:</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setDispatchEmail(dispatchOrder.customerEmail)}
+                            className="text-[10px] text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                          >
+                            Use Customer Email
+                          </button>
+                        </div>
                         <input
                           type="text"
                           required
-                          value={customKey}
-                          onChange={(e) => setCustomKey(e.target.value)}
-                          placeholder="e.g. Email: user@ryvora.com | Pass: SecurePass123"
+                          value={dispatchEmail}
+                          onChange={(e) => setDispatchEmail(e.target.value)}
+                          placeholder="e.g. customer@gmail.com or pro-seat-92@ryvoradigital.com"
                           className="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
                         />
                       </div>
 
+                      {/* 2. Account Password */}
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                          Activation & Delivery Instructions:
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                            <Lock className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Account Password:</span>
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setShowDispatchPassword(!showDispatchPassword)}
+                              className="text-[10px] text-slate-400 hover:text-cyan-400 flex items-center gap-1 cursor-pointer"
+                            >
+                              {showDispatchPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                              <span>{showDispatchPassword ? 'Hide' : 'Show'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleGeneratePassword}
+                              className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold underline cursor-pointer flex items-center gap-0.5"
+                            >
+                              <Sparkles className="w-2.5 h-2.5" />
+                              <span>Auto-Gen Password</span>
+                            </button>
+                          </div>
+                        </div>
+                        <input
+                          type={showDispatchPassword ? 'text' : 'password'}
+                          value={dispatchPassword}
+                          onChange={(e) => setDispatchPassword(e.target.value)}
+                          placeholder="e.g. RyvSecure#9821 or leave blank if activation via invite"
+                          className="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+
+                      {/* 3. License Key */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                            <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>License Key / Token / Invitation Link:</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateKey()}
+                            className="text-[10px] text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                          >
+                            Auto-Gen Key
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={dispatchKey}
+                          onChange={(e) => setDispatchKey(e.target.value)}
+                          placeholder="e.g. RYV-GPT4O-PRO-94821-US"
+                          className="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+
+                      {/* 4. Instructions */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Activation & Login Instructions:</span>
+                          </label>
+                          <div className="flex items-center gap-1.5 text-[10px]">
+                            <button
+                              type="button"
+                              onClick={() => setDispatchInstructions('Login directly using the Email & Password provided above. Do not alter billing settings or change registered email.')}
+                              className="text-slate-400 hover:text-white underline cursor-pointer"
+                            >
+                              Private Login
+                            </button>
+                            <span className="text-slate-600">·</span>
+                            <button
+                              type="button"
+                              onClick={() => setDispatchInstructions('Your account has been granted team membership seat. Accept the email invite sent to your inbox to begin.')}
+                              className="text-slate-400 hover:text-white underline cursor-pointer"
+                            >
+                              Team Seat
+                            </button>
+                          </div>
+                        </div>
                         <textarea
                           rows={3}
-                          value={customInstructions}
-                          onChange={(e) => setCustomInstructions(e.target.value)}
-                          placeholder="Instructions to display to customer and send to inbox..."
+                          value={dispatchInstructions}
+                          onChange={(e) => setDispatchInstructions(e.target.value)}
+                          placeholder="Instructions to display on customer's live tracker and email dispatch..."
                           className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="pt-2 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const o = dispatchOrder;
+                            setDispatchOrder(null);
+                            setAdminTrackingOrder(o);
+                          }}
+                          className="text-cyan-400 hover:text-cyan-300 text-xs flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+                        >
+                          <Compass className="w-3.5 h-3.5" />
+                          <span>Track This Order</span>
+                        </button>
+
+                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setDispatchOrder(null)}
+                            className="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleConfirmDispatch('activated')}
+                            className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-bold cursor-pointer"
+                          >
+                            Save as Activated
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer shadow-md flex items-center gap-1.5"
+                          >
+                            <CheckCheck className="w-4 h-4" />
+                            <span>Dispatch (Delivered)</span>
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL 2: DECLINE ORDER MODAL */}
+              {decliningOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
+                  <div className="fixed inset-0" onClick={() => setDecliningOrder(null)} />
+                  <div className="relative w-full max-w-md rounded-3xl bg-[#090d16] border border-rose-500/40 p-6 shadow-2xl z-10">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                          <Ban className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-bold text-white font-display">Decline Customer Order</h3>
+                          <p className="text-xs text-slate-400">Order: <span className="font-mono text-cyan-400 font-bold">{decliningOrder.orderId}</span></p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setDecliningOrder(null)}
+                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-rose-950/20 border border-rose-500/20 text-xs text-rose-300 mb-4">
+                      Declining will update the order status to <strong className="text-rose-400">DECLINED</strong> across all devices and display the reason to the customer on their tracker.
+                    </div>
+
+                    <div className="space-y-3 text-xs mb-5">
+                      <label className="block text-[11px] font-semibold text-slate-300">
+                        Select Reason for Declining:
+                      </label>
+
+                      {/* Quick reason chips */}
+                      <div className="space-y-1.5">
+                        {[
+                          'Payment screenshot invalid or unreadable',
+                          'Payment not received in bank/wallet account',
+                          'Incorrect transfer amount paid',
+                          'Product subscription currently out of stock',
+                          'Transaction reference ID duplicate or invalid',
+                        ].map((reason) => (
+                          <button
+                            key={reason}
+                            type="button"
+                            onClick={() => setDeclineReasonText(reason)}
+                            className={`w-full text-left p-2 rounded-xl border text-[11px] transition-colors cursor-pointer ${
+                              declineReasonText === reason
+                                ? 'bg-rose-950/40 border-rose-500/60 text-rose-200'
+                                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            {reason}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                          Custom Reason / Customer Note:
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={declineReasonText}
+                          onChange={(e) => setDeclineReasonText(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500"
                         />
                       </div>
                     </div>
 
-                    <div className="flex justify-end gap-2.5 text-xs mt-5">
+                    <div className="flex justify-end gap-2 text-xs">
                       <button
-                        onClick={() => {
-                          setDispatchOrderId(null);
-                          setCustomKey('');
-                          setCustomInstructions('');
-                        }}
-                        className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 cursor-pointer"
+                        type="button"
+                        onClick={() => setDecliningOrder(null)}
+                        className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
                       >
                         Cancel
                       </button>
                       <button
-                        onClick={() => handleDispatchOrder(dispatchOrderId)}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer shadow-md"
+                        type="button"
+                        onClick={handleConfirmDecline}
+                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer shadow-md flex items-center gap-1.5"
                       >
-                        Approve Payment & Send Credentials
+                        <Ban className="w-4 h-4" />
+                        <span>Confirm Decline Order</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL 3: ADMIN LIVE ORDER TRACKER PREVIEW MODAL */}
+              {adminTrackingOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
+                  <div className="fixed inset-0" onClick={() => setAdminTrackingOrder(null)} />
+                  <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#090d16] border border-cyan-500/40 p-6 sm:p-7 shadow-2xl z-10">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                          <Compass className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-bold text-white font-display flex items-center gap-2">
+                            <span>Admin Order Tracker</span>
+                            <span className="font-mono text-cyan-400 font-bold">({adminTrackingOrder.orderId})</span>
+                          </h3>
+                          <p className="text-xs text-slate-400">
+                            Customer: <strong className="text-slate-200">{adminTrackingOrder.customerEmail}</strong> · Created: {adminTrackingOrder.createdAt}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setAdminTrackingOrder(null)}
+                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Order Status & Stepper */}
+                    <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 mb-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-400 uppercase">Live Fulfillment Status:</span>
+                        <span
+                          className={`text-xs font-black px-3 py-1 rounded-full uppercase border ${
+                            adminTrackingOrder.status === 'delivered'
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                              : adminTrackingOrder.status === 'activated'
+                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                              : adminTrackingOrder.status === 'declined'
+                              ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                              : adminTrackingOrder.status === 'cancelled'
+                              ? 'bg-slate-800 text-slate-400 border-slate-700'
+                              : 'bg-amber-500/20 text-amber-400 border-amber-500/40 animate-pulse'
+                          }`}
+                        >
+                          {adminTrackingOrder.status.toUpperCase()}
+                        </span>
+                      </div>
+
+                      {adminTrackingOrder.declineReason && adminTrackingOrder.status === 'declined' && (
+                        <div className="p-3 rounded-xl bg-rose-950/30 border border-rose-500/30 text-rose-300 text-xs">
+                          <strong>Decline Reason:</strong> {adminTrackingOrder.declineReason}
+                        </div>
+                      )}
+
+                      {/* Items */}
+                      <div className="pt-2 border-t border-slate-800/80 text-xs space-y-1.5">
+                        <span className="text-[11px] font-bold text-slate-400 block uppercase">Purchased Tools:</span>
+                        {adminTrackingOrder.items.map((item, idx) => (
+                          <div key={idx} className="flex justify-between items-center text-slate-300 bg-slate-900/60 p-2 rounded-xl">
+                            <span>{item.product.name} ({item.duration.replace('_', ' ')})</span>
+                            <span className="font-mono text-cyan-400">Qty: {item.quantity} · ${item.priceUSD.toFixed(2)}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between items-center pt-1 text-slate-300 font-bold">
+                          <span>Total Amount:</span>
+                          <span className="text-emerald-400 text-sm font-mono">${adminTrackingOrder.totalUSD.toFixed(2)} USD</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dispatched Credentials Box */}
+                    <div className="p-4 rounded-2xl bg-cyan-950/20 border border-cyan-500/30 mb-4 space-y-3">
+                      <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2">
+                        <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                          <KeyRound className="w-4 h-4 text-cyan-400" />
+                          <span>Credentials Sent to Customer</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const o = adminTrackingOrder;
+                            setAdminTrackingOrder(null);
+                            handleOpenDispatchModal(o);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[10px] cursor-pointer flex items-center gap-1"
+                        >
+                          <Send className="w-3 h-3" />
+                          <span>Dispatch / Edit Credentials</span>
+                        </button>
+                      </div>
+
+                      {/* Account Email */}
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Account Email:</span>
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 font-mono text-xs text-white border border-slate-800">
+                          <span className="truncate">{adminTrackingOrder.accountEmail || adminTrackingOrder.credentials?.accountEmail || 'Not yet dispatched'}</span>
+                          {(adminTrackingOrder.accountEmail || adminTrackingOrder.credentials?.accountEmail) && (
+                            <button
+                              onClick={() => copyAdminText(adminTrackingOrder.accountEmail || adminTrackingOrder.credentials?.accountEmail || '', 'email')}
+                              className="p-1 rounded text-slate-400 hover:text-cyan-400 cursor-pointer"
+                              title="Copy Email"
+                            >
+                              {adminCopiedKey === 'email' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Account Password */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold">Account Password:</span>
+                          <button
+                            onClick={() => setAdminTrackingShowPassword(!adminTrackingShowPassword)}
+                            className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
+                          >
+                            {adminTrackingShowPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                            <span>{adminTrackingShowPassword ? 'Hide' : 'Show'}</span>
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 font-mono text-xs text-white border border-slate-800">
+                          <span>
+                            {adminTrackingOrder.accountPassword || adminTrackingOrder.credentials?.accountPassword
+                              ? (adminTrackingShowPassword ? (adminTrackingOrder.accountPassword || adminTrackingOrder.credentials?.accountPassword) : '••••••••••••••••')
+                              : 'Not yet dispatched'}
+                          </span>
+                          {(adminTrackingOrder.accountPassword || adminTrackingOrder.credentials?.accountPassword) && (
+                            <button
+                              onClick={() => copyAdminText(adminTrackingOrder.accountPassword || adminTrackingOrder.credentials?.accountPassword || '', 'pass')}
+                              className="p-1 rounded text-slate-400 hover:text-cyan-400 cursor-pointer"
+                              title="Copy Password"
+                            >
+                              {adminCopiedKey === 'pass' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* License Key */}
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">License Key:</span>
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 font-mono text-xs text-cyan-400 border border-slate-800">
+                          <span className="truncate">{adminTrackingOrder.licenseKey || adminTrackingOrder.credentials?.licenseKey || 'Not yet dispatched'}</span>
+                          {(adminTrackingOrder.licenseKey || adminTrackingOrder.credentials?.licenseKey) && (
+                            <button
+                              onClick={() => copyAdminText(adminTrackingOrder.licenseKey || adminTrackingOrder.credentials?.licenseKey || '', 'key')}
+                              className="p-1 rounded text-slate-400 hover:text-cyan-400 cursor-pointer"
+                              title="Copy Key"
+                            >
+                              {adminCopiedKey === 'key' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Instructions */}
+                      {(adminTrackingOrder.deliveryInstructions || adminTrackingOrder.credentials?.instructions) && (
+                        <div>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Instructions:</span>
+                          <div className="p-2.5 rounded-xl bg-slate-950 text-xs text-slate-300 border border-slate-800 leading-relaxed whitespace-pre-wrap">
+                            {adminTrackingOrder.deliveryInstructions || adminTrackingOrder.credentials?.instructions}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Receipt Screenshot Preview if any */}
+                    {adminTrackingOrder.paymentProof && (
+                      <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 mb-4">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase block mb-2">Customer Payment Proof:</span>
+                        <img
+                          src={adminTrackingOrder.paymentProof}
+                          alt="Customer Payment Receipt"
+                          className="max-h-56 w-auto object-contain rounded-xl border border-slate-800 mx-auto"
+                        />
+                      </div>
+                    )}
+
+                    {/* Bottom Modal Actions */}
+                    <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-slate-800 text-xs">
+                      <div className="flex items-center gap-2">
+                        {adminTrackingOrder.status !== 'declined' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const o = adminTrackingOrder;
+                              setAdminTrackingOrder(null);
+                              handleOpenDeclineModal(o);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-semibold cursor-pointer flex items-center gap-1"
+                          >
+                            <Ban className="w-3.5 h-3.5" />
+                            <span>Decline Order</span>
+                          </button>
+                        )}
+                        {adminTrackingOrder.status !== 'cancelled' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const o = adminTrackingOrder;
+                              setAdminTrackingOrder(null);
+                              handleOpenCancelModal(o);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-semibold cursor-pointer flex items-center gap-1"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Cancel Order</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const o = adminTrackingOrder;
+                            setAdminTrackingOrder(null);
+                            handleOpenDeleteModal(o);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-500/30 font-semibold cursor-pointer flex items-center gap-1"
+                          title="Permanently Delete Order"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete Order</span>
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAdminTrackingOrder(null)}
+                          className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                        >
+                          Close
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const o = adminTrackingOrder;
+                            setAdminTrackingOrder(null);
+                            handleOpenDispatchModal(o);
+                          }}
+                          className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer flex items-center gap-1.5 shadow-md"
+                        >
+                          <Send className="w-4 h-4" />
+                          <span>Dispatch Credentials</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL 4: CANCEL ORDER CONFIRMATION MODAL */}
+              {orderToCancel && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
+                  <div className="fixed inset-0" onClick={() => setOrderToCancel(null)} />
+                  <div className="relative w-full max-w-md rounded-3xl bg-[#090d16] border border-amber-500/50 p-6 shadow-2xl z-10 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                          <XCircle className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-bold text-white font-display">Cancel Customer Order</h3>
+                          <p className="text-xs text-amber-400 font-mono">{orderToCancel.orderId}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setOrderToCancel(null)}
+                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/30 text-xs text-amber-300 space-y-1">
+                      <p className="font-semibold text-amber-200">
+                        Mark order as CANCELLED across all devices?
+                      </p>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        The order status will be updated to Cancelled. The customer will see the cancellation on their live Order Tracker.
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+                      <div className="text-slate-400 flex justify-between">
+                        <span>Customer:</span>
+                        <span className="text-white font-medium">{orderToCancel.customerEmail}</span>
+                      </div>
+                      <div className="text-slate-400 flex justify-between">
+                        <span>Total:</span>
+                        <span className="text-emerald-400 font-bold font-mono">${orderToCancel.totalUSD.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 text-xs pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setOrderToCancel(null)}
+                        className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                      >
+                        Go Back
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleConfirmCancel}
+                        className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold cursor-pointer shadow-md flex items-center gap-1.5"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        <span>Confirm Cancellation</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL 5: DELETE ORDER PERMANENT CONFIRMATION MODAL */}
+              {orderToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
+                  <div className="fixed inset-0" onClick={() => setOrderToDelete(null)} />
+                  <div className="relative w-full max-w-md rounded-3xl bg-[#090d16] border border-rose-500/50 p-6 shadow-2xl z-10 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                          <Trash2 className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-bold text-white font-display">Delete Order Permanently</h3>
+                          <p className="text-xs text-rose-400 font-mono">{orderToDelete.orderId}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setOrderToDelete(null)}
+                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-rose-950/20 border border-rose-500/30 text-xs text-rose-300 space-y-2">
+                      <p className="font-semibold text-rose-200">
+                        Are you sure you want to permanently delete this order?
+                      </p>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        This will permanently purge order <strong className="text-white font-mono">{orderToDelete.orderId}</strong> for customer <strong className="text-white">{orderToDelete.customerEmail}</strong> from Cloud Firestore and the server database. This action cannot be undone.
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+                      <div className="text-slate-400 flex justify-between">
+                        <span>Items:</span>
+                        <span className="text-white font-medium">{orderToDelete.items.map((i) => i.product.name).join(', ')}</span>
+                      </div>
+                      <div className="text-slate-400 flex justify-between">
+                        <span>Total:</span>
+                        <span className="text-emerald-400 font-bold font-mono">${orderToDelete.totalUSD.toFixed(2)}</span>
+                      </div>
+                      <div className="text-slate-400 flex justify-between">
+                        <span>Status:</span>
+                        <span className="font-bold uppercase text-slate-300">{orderToDelete.status}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 text-xs pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setOrderToDelete(null)}
+                        className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                      >
+                        Keep Order
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleConfirmDelete}
+                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer shadow-md flex items-center gap-1.5"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>Permanently Delete</span>
                       </button>
                     </div>
                   </div>
