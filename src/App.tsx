@@ -419,7 +419,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
+    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black overflow-x-hidden w-full max-w-[100vw]">
       
       {/* Toast Alert */}
       {toastMessage && (

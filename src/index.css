@@ -10,6 +10,15 @@
     font-family: var(--font-sans);
     background-color: #07090e;
     color: #e2e8f0;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  html {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
   }
 
   h1, h2, h3, h4, .font-display {

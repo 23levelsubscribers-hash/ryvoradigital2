@@ -63,38 +63,38 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   }, [selectedCategory, searchQuery, sortBy, products]);
 
   return (
-    <section id="catalog" className="py-8 sm:py-16 max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
+    <section id="catalog" className="py-6 sm:py-16 max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 overflow-hidden">
       
       {/* Section Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-8">
         <div>
-          <div className="flex items-center gap-2 text-[11px] sm:text-xs font-bold tracking-wider text-emerald-400 uppercase mb-1.5 sm:mb-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-bold tracking-wider text-emerald-400 uppercase mb-1 sm:mb-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             <span>FULL WARRANTY CATALOG · {products.length} ACTIVE SERVICES</span>
           </div>
 
-          <h2 className="text-xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight font-display">
+          <h2 className="text-lg sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight font-display">
             FEATURED DIGITAL SERVICES
           </h2>
           
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+          <p className="text-[11px] sm:text-sm text-slate-400 mt-0.5 sm:mt-1 max-w-2xl">
             Instant digital access, official accounts, and full-duration replacement warranty.
           </p>
         </div>
 
         {/* Total count indicator */}
-        <div className="flex items-center justify-between sm:justify-end gap-3">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] sm:text-xs text-slate-300">
+        <div className="flex items-center justify-between sm:justify-end gap-2">
+          <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl bg-slate-900 border border-slate-800 text-[10px] sm:text-xs text-slate-300">
             Showing <strong className="text-cyan-400 font-bold">{filteredProducts.length}</strong> of {products.length} Products
           </div>
         </div>
       </div>
 
       {/* Category Tabs & Sort Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-8">
         
-        {/* Horizontal Category Filter Buttons with smooth touch scroll */}
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 pt-1 -mx-3.5 px-3.5 sm:mx-0 sm:px-0 scrollbar-none touch-pan-x overscroll-x-contain">
+        {/* Horizontal Category Filter Buttons */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none touch-pan-x">
           {CATEGORIES.map((cat) => {
             const isActive = selectedCategory === cat.id;
             const count = cat.id === 'all'
@@ -106,14 +106,14 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 key={cat.id}
                 type="button"
                 onClick={() => onSelectCategory(cat.id)}
-                className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer active:scale-95 shrink-0 ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all cursor-pointer active:scale-95 shrink-0 ${
                   isActive
                     ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(124,58,237,0.4)] border border-purple-400/40'
                     : 'bg-slate-900/90 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700'
                 }`}
               >
                 <span>{cat.name}</span>
-                <span className={`ml-1 sm:ml-1.5 text-[10px] sm:text-[11px] ${isActive ? 'text-purple-200' : 'text-slate-500'}`}>
+                <span className={`ml-1 text-[9px] sm:text-[11px] ${isActive ? 'text-purple-200' : 'text-slate-500'}`}>
                   ({count})
                 </span>
               </button>
@@ -127,7 +127,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="w-full sm:w-auto bg-slate-900 border border-slate-800 text-xs font-medium text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500 cursor-pointer"
+            className="w-full sm:w-auto bg-slate-900 border border-slate-800 text-[11px] sm:text-xs font-medium text-slate-200 rounded-lg sm:rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2 focus:outline-none focus:border-cyan-500 cursor-pointer"
           >
             <option value="featured">Sort: Featured & Best Sellers</option>
             <option value="price-asc">Sort: Price (Low to High)</option>
@@ -138,9 +138,9 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
       </div>
 
-      {/* Product Grid - fully responsive on mobile (single column sleek card) to 4 columns */}
+      {/* Product Grid - 1 full-width card on mobile screen, 2 on tablet, 3-4 on desktop */}
       {filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredProducts.map((product) => (
             <ProductCard
               key={product.id}

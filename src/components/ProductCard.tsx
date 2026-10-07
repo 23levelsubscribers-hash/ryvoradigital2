@@ -20,17 +20,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <div
       onClick={() => onView(product)}
-      className="group relative flex flex-col justify-between rounded-2xl sm:rounded-3xl bg-[#090d16] border border-slate-800/90 p-4 sm:p-5 hover:border-cyan-500/60 hover:shadow-[0_0_30px_rgba(6,182,212,0.18)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer select-none"
+      className="group relative flex flex-col justify-between rounded-2xl sm:rounded-3xl bg-[#090d16] border border-slate-800/90 p-4 sm:p-5 hover:border-cyan-500/60 hover:shadow-[0_0_30px_rgba(6,182,212,0.18)] transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer select-none w-full max-w-full overflow-hidden"
     >
       {/* Top Header: Category Tag & In-Stock Status */}
       <div>
-        <div className="flex items-center justify-between mb-3 sm:mb-4">
-          <span className="text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-400 uppercase font-mono">
+        <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+          <span className="text-[10px] sm:text-xs font-extrabold tracking-wider text-slate-400 uppercase font-mono truncate">
             {product.categoryLabel}
           </span>
 
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950/50 border border-emerald-500/30">
-            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950/50 border border-emerald-500/30 shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
             <span className="text-[9px] sm:text-[10px] font-bold text-emerald-400 uppercase tracking-wide">
               {product.inStock ? 'IN STOCK' : 'OUT OF STOCK'}
             </span>
@@ -54,17 +54,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {product.name}
             </h3>
 
-            <p className="text-[11px] sm:text-xs text-slate-400 line-clamp-2 mt-0.5 leading-snug">
+            <p className="text-xs text-slate-400 line-clamp-2 mt-0.5 leading-snug">
               {product.tagline}
             </p>
 
             {/* Rating Stars */}
-            <div className="flex items-center gap-1 mt-1 text-[11px] sm:text-xs">
-              <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-400 text-amber-400 shrink-0" />
+            <div className="flex items-center gap-1.5 mt-1 text-xs">
+              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
               <span className="font-bold text-amber-300">{product.rating}</span>
-              <span className="text-slate-500 text-[10px] sm:text-[11px]">({product.reviewsCount})</span>
+              <span className="text-slate-500 text-[11px]">({product.reviewsCount})</span>
               {product.badge && (
-                <span className="ml-1 text-[9px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hidden xs:inline-block">
+                <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 inline-block">
                   {product.badge}
                 </span>
               )}
@@ -73,9 +73,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* 3 Concrete Feature Checkmarks */}
-        <div className="space-y-1.5 sm:space-y-2 mb-4 pt-2 border-t border-slate-800/80">
+        <div className="space-y-1.5 sm:space-y-2 mb-4 pt-2.5 border-t border-slate-800/80">
           {product.features.slice(0, 3).map((feat, index) => (
-            <div key={index} className="flex items-start gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-300 leading-snug">
+            <div key={index} className="flex items-start gap-2 text-xs text-slate-300 leading-snug">
               <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
               <span className="line-clamp-1">{feat}</span>
             </div>
@@ -92,13 +92,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             STARTING FROM
           </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-[11px] sm:text-xs text-slate-500 line-through tabular-nums">
+            <span className="text-xs text-slate-500 line-through tabular-nums">
               {formatPrice(product.retailPriceUSD, currency)}
             </span>
             <span className="text-lg sm:text-xl font-black text-emerald-400 font-display tabular-nums tracking-tight">
               {formatPrice(product.priceUSD, currency)}
             </span>
-            <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">/ mo</span>
+            <span className="text-[11px] text-slate-400 font-medium">/ mo</span>
           </div>
         </div>
 
@@ -110,9 +110,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               e.stopPropagation();
               onView(product);
             }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-700/80 bg-slate-900/90 text-xs font-bold text-slate-200 hover:text-white hover:border-cyan-500 hover:bg-cyan-950/40 transition-all cursor-pointer shadow-sm active:scale-98"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-700/80 bg-slate-900/90 text-xs font-bold text-slate-200 hover:text-white hover:border-cyan-500 hover:bg-cyan-950/40 transition-all cursor-pointer shadow-sm active:scale-98 min-h-[40px]"
           >
-            <Eye className="w-3.5 h-3.5 text-cyan-400" />
+            <Eye className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span className="tracking-wide">VIEW / BUY</span>
           </button>
 
