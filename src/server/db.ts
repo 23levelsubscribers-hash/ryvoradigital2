@@ -797,6 +797,7 @@ function mapProductRow(p: any): Product {
     category: p.category as any,
     categoryLabel: p.category_label || '',
     iconName: p.icon_name || 'Sparkles',
+    imageUrl: p.image_url || p.image || undefined,
     brandColor: p.brand_color || '#00E5FF',
     accentGlow: p.accent_glow || 'rgba(0, 229, 255, 0.25)',
     rating: parseFloat(p.rating || 5.0),

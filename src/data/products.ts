@@ -19,6 +19,7 @@ export const PRODUCTS: Product[] = [
     category: 'ai',
     categoryLabel: 'AI TOOLS',
     iconName: 'Bot',
+    imageUrl: 'https://i.ibb.co/27nHxHZn/images-1.jpg',
     brandColor: '#10A37F',
     accentGlow: 'rgba(16, 163, 127, 0.25)',
     rating: 4.9,

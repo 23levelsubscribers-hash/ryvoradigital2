@@ -79,6 +79,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <BrandIcon
             id={product.id}
             name={product.name}
+            imageUrl={product.imageUrl}
             brandColor={product.brandColor}
             className="w-12 h-12 sm:w-16 sm:h-16 shrink-0"
           />

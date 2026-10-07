@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface BrandIconProps {
   id: string;
   name: string;
+  imageUrl?: string;
   brandColor?: string;
   className?: string;
 }
@@ -10,9 +11,28 @@ interface BrandIconProps {
 export const BrandIcon: React.FC<BrandIconProps> = ({
   id,
   name,
+  imageUrl,
   brandColor = '#1e293b',
   className = 'w-12 h-12',
 }) => {
+  const [hasImgError, setHasImgError] = useState(false);
+
+  const effectiveImageUrl = imageUrl || (id === 'chatgpt-plus' ? 'https://i.ibb.co/27nHxHZn/images-1.jpg' : undefined);
+
+  if (effectiveImageUrl && !hasImgError) {
+    return (
+      <div className={`${className} rounded-2xl overflow-hidden bg-[#090d16] flex items-center justify-center p-0.5 shadow-lg shrink-0 border border-slate-700/80 group-hover:border-emerald-500/60 shadow-emerald-950/20 transition-all`}>
+        <img
+          src={effectiveImageUrl}
+          alt={name}
+          onError={() => setHasImgError(true)}
+          className="w-full h-full object-cover rounded-[14px]"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
   // Render authentic SVG logos matching user screenshot
   switch (id) {
     case 'chatgpt-plus':

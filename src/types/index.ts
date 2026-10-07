@@ -25,6 +25,7 @@ export interface Product {
   category: CategoryId;
   categoryLabel: string;
   iconName: string;
+  imageUrl?: string;
   brandColor: string;
   accentGlow: string;
   rating: number;

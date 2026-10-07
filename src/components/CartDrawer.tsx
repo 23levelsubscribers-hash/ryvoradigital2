@@ -4,6 +4,7 @@ import { CartItem, CurrencyCode, CustomerOrder } from '../types';
 import { formatPrice } from '../utils/currency';
 import { apiCreateOrder, apiUploadProof } from '../utils/api';
 import { firestoreCreateOrder } from '../lib/firebase';
+import { BrandIcon } from './BrandIcon';
 
 function compressImage(file: File, maxWidth = 900, quality = 0.72): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -340,16 +341,26 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     key={`${item.product?.id || 'item'}-${item.duration || 'plan'}-${idx}`}
                     className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex gap-3 relative group"
                   >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0"
-                      style={{
-                        backgroundColor: `${item.product?.brandColor || '#06b6d4'}20`,
-                        color: item.product?.brandColor || '#06b6d4',
-                        border: `1px solid ${item.product?.brandColor || '#06b6d4'}40`,
-                      }}
-                    >
-                      {(item.product?.name || 'P').charAt(0)}
-                    </div>
+                    {item.product ? (
+                      <BrandIcon
+                        id={item.product.id}
+                        name={item.product.name}
+                        imageUrl={item.product.imageUrl}
+                        brandColor={item.product.brandColor}
+                        className="w-10 h-10 shrink-0"
+                      />
+                    ) : (
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0"
+                        style={{
+                          backgroundColor: '#06b6d420',
+                          color: '#06b6d4',
+                          border: '1px solid #06b6d440',
+                        }}
+                      >
+                        P
+                      </div>
+                    )}
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">

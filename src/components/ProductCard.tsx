@@ -44,6 +44,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <BrandIcon
               id={product.id}
               name={product.name}
+              imageUrl={product.imageUrl}
               brandColor={product.brandColor}
               className="w-11 h-11 sm:w-12 sm:h-12"
             />
