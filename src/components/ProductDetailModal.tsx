@@ -19,11 +19,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onAddToCart,
   onBuyNow,
 }) => {
-  if (!product) return null;
-
   const [selectedDuration, setSelectedDuration] = useState<PlanDuration>('1_month');
   const [selectedAccountType, setSelectedAccountType] = useState<AccountType>(
-    product.allowedAccountTypes[0] || 'private_account'
+    (product?.allowedAccountTypes && product.allowedAccountTypes[0]) || 'private_account'
   );
 
   // Variant options for plan duration
@@ -35,13 +33,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   ];
 
   const currentDuration = durationOptions.find((d) => d.id === selectedDuration) || durationOptions[0];
-  const calculatedPriceUSD = Number((product.priceUSD * currentDuration.multiplier).toFixed(2));
-  const calculatedRetailUSD = Number(
-    (
-      product.retailPriceUSD *
-      (currentDuration.id === '1_year' ? 12 : currentDuration.id === '6_months' ? 6 : currentDuration.id === '3_months' ? 3 : 1)
-    ).toFixed(2)
-  );
+  const calculatedPriceUSD = product ? Number((product.priceUSD * currentDuration.multiplier).toFixed(2)) : 0;
+  const calculatedRetailUSD = product
+    ? Number(
+        (
+          product.retailPriceUSD *
+          (currentDuration.id === '1_year' ? 12 : currentDuration.id === '6_months' ? 6 : currentDuration.id === '3_months' ? 3 : 1)
+        ).toFixed(2)
+      )
+    : 0;
 
   const accountTypeLabels: Record<AccountType, { title: string; subtitle: string; tag: string }> = {
     private_account: {
@@ -60,6 +60,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       tag: 'Private PIN',
     },
   };
+
+  if (!product) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">

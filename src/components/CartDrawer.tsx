@@ -63,7 +63,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [selectedPayment, setSelectedPayment] = useState<'card' | 'applepay' | 'paypal' | 'crypto' | 'bank'>('card');
+  const [selectedPayment, setSelectedPayment] = useState<'card' | 'applepay' | 'paypal' | 'crypto' | 'bank'>('bank');
   const [transactionId, setTransactionId] = useState('');
   const [paymentProof, setPaymentProof] = useState<string | null>(null);
   const [paymentProofName, setPaymentProofName] = useState<string>('');
@@ -71,6 +71,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [copiedInfo, setCopiedInfo] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,7 +83,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     setPaymentProof(null);
     setPaymentProofName('');
     setIsUploadingProof(false);
-    setSelectedPayment('card');
+    setSelectedPayment('bank');
     setCouponCode('');
     setAppliedDiscountPercent(0);
     setCouponMessage(null);
@@ -104,10 +105,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     }
   }, [items.length]);
 
-  if (!isOpen) return null;
-
   // Calculate totals
-  const subtotalUSD = items.reduce((sum, item) => sum + item.priceUSD * item.quantity, 0);
+  const subtotalUSD = items.reduce((sum, item) => sum + (item.priceUSD || 0) * (item.quantity || 1), 0);
   const discountUSD = Number(((subtotalUSD * appliedDiscountPercent) / 100).toFixed(2));
   const totalUSD = Math.max(0, Number((subtotalUSD - discountUSD).toFixed(2)));
 
@@ -167,18 +166,46 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     }
   };
 
-  const handleCopyPaymentInfo = (text: string) => {
+  const handleCopyPaymentInfo = (text: string, keyName: string = 'main') => {
     navigator.clipboard.writeText(text);
+    setCopiedKey(keyName);
     setCopiedInfo(true);
-    setTimeout(() => setCopiedInfo(false), 2000);
+    setTimeout(() => {
+      setCopiedKey(null);
+      setCopiedInfo(false);
+    }, 2000);
   };
 
-  const paymentDetailsMap: Record<string, { name: string; address: string; shortCopy: string; instructions: string }> = {
+  const paymentDetailsMap: Record<
+    string,
+    {
+      name: string;
+      address: string;
+      shortCopy: string;
+      instructions: string;
+      isBank?: boolean;
+      bankName?: string;
+      accountTitle?: string;
+      accountNumber?: string;
+      routingNumber?: string;
+      accountType?: string;
+      swiftCode?: string;
+      transferType?: string;
+    }
+  > = {
     card: {
-      name: 'Credit/Debit Card (Stripe USA / Wire)',
-      address: 'Account: Ryvora Digital LLC | Routing: 111000025 | Acc #: 8942001948',
-      shortCopy: '8942001948',
-      instructions: 'Transfer the order amount and upload screenshot (optional) or enter Transaction ID.',
+      name: 'Credit/Debit Card (Direct Wire / Citibank)',
+      address: 'Bank: Citibank | Beneficiary: Usman Ghani | Routing: 031100209 | Acc #: 70587190002673170',
+      shortCopy: '70587190002673170',
+      instructions: 'Transfer the order amount to our Citibank account and attach screenshot or enter Transaction ID.',
+      isBank: true,
+      bankName: 'Citibank',
+      accountTitle: 'Usman Ghani',
+      accountNumber: '70587190002673170',
+      routingNumber: '031100209',
+      accountType: 'CHECKING',
+      swiftCode: 'CITIUS33',
+      transferType: 'Local transfer',
     },
     applepay: {
       name: 'Apple Pay / Zelle / Cash App',
@@ -199,10 +226,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       instructions: 'Send USDT (TRC20) and enter transaction hash or upload confirmation screenshot.',
     },
     bank: {
-      name: 'Bank Transfer / Local Wallet / Direct Confirmation',
-      address: 'WhatsApp Direct: +1 (512) 883-9120 | Email: support@ryvoradigital.com',
-      shortCopy: '+15128839120',
-      instructions: 'Instant account reservation. Pay via local bank/mobile wallet or submit now to receive invoice.',
+      name: 'Citibank Local Transfer (ACH / Domestic Wire)',
+      address: 'Bank: Citibank | Beneficiary: Usman Ghani | Routing: 031100209 | Acc #: 70587190002673170',
+      shortCopy: '70587190002673170',
+      instructions: 'Transfer via local US bank transfer / ACH / wire. Enter reference or attach screenshot.',
+      isBank: true,
+      bankName: 'Citibank',
+      accountTitle: 'Usman Ghani',
+      accountNumber: '70587190002673170',
+      routingNumber: '031100209',
+      accountType: 'CHECKING',
+      swiftCode: 'CITIUS33',
+      transferType: 'Local transfer',
     },
   };
 
@@ -286,6 +321,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     }
   };
 
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
       
@@ -337,24 +374,24 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <div className="space-y-3">
                 {items.map((item, idx) => (
                   <div
-                    key={`${item.product.id}-${item.duration}-${idx}`}
+                    key={`${item.product?.id || 'item'}-${item.duration || 'plan'}-${idx}`}
                     className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex gap-3 relative group"
                   >
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0"
                       style={{
-                        backgroundColor: `${item.product.brandColor}20`,
-                        color: item.product.brandColor,
-                        border: `1px solid ${item.product.brandColor}40`,
+                        backgroundColor: `${item.product?.brandColor || '#06b6d4'}20`,
+                        color: item.product?.brandColor || '#06b6d4',
+                        border: `1px solid ${item.product?.brandColor || '#06b6d4'}40`,
                       }}
                     >
-                      {item.product.name.charAt(0)}
+                      {(item.product?.name || 'P').charAt(0)}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="font-bold text-white truncate text-xs">
-                          {item.product.name}
+                          {item.product?.name || 'Subscription License'}
                         </h4>
                         <button
                           onClick={() => onRemoveItem(idx)}
@@ -367,10 +404,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
                       <div className="flex flex-wrap gap-1.5 my-1 text-[10px]">
                         <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-medium capitalize">
-                          {item.duration.replace('_', ' ')}
+                          {(item.duration || '1_month').replace(/_/g, ' ')}
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                          {item.accountType.replace('_', ' ')}
+                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 capitalize">
+                          {(item.accountType || 'private_account').replace(/_/g, ' ')}
                         </span>
                       </div>
 
@@ -392,7 +429,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         </div>
 
                         <span className="font-bold text-emerald-400 text-xs font-mono">
-                          {formatPrice(item.priceUSD * item.quantity, currency)}
+                          {formatPrice((item.priceUSD || 0) * (item.quantity || 1), currency)}
                         </span>
                       </div>
                     </div>
@@ -542,34 +579,128 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     }`}
                   >
                     <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="font-semibold text-[11px]">Bank / Local Pay</span>
+                    <span className="font-semibold text-[11px]">Bank (Citibank)</span>
                   </button>
                 </div>
 
                 {/* Selected Payment Instructions Card */}
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-cyan-500/30 text-xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-cyan-300 text-[11px] uppercase tracking-wider">
-                      Send Payment To / Details:
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyPaymentInfo(currentPayInfo.shortCopy)}
-                      className="text-[10px] text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
-                    >
-                      {copiedInfo ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                      <span>{copiedInfo ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
+                {currentPayInfo.isBank ? (
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-b from-[#0a101d] to-[#080c16] border border-cyan-500/40 text-xs space-y-2.5 shadow-lg">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-md bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs">
+                          🏦
+                        </div>
+                        <span className="font-extrabold text-white text-xs">
+                          Citibank Local Transfer (USA)
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full">
+                        Local Transfer (ACH / Wire)
+                      </span>
+                    </div>
 
-                  <div className="font-mono text-[11px] text-slate-200 bg-slate-900/80 p-2 rounded-lg border border-slate-800 select-all break-all">
-                    {currentPayInfo.address}
-                  </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {/* Beneficiary Name */}
+                      <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">
+                          Beneficiary Name
+                        </span>
+                        <span className="font-bold text-white text-xs block mt-0.5">
+                          {currentPayInfo.accountTitle}
+                        </span>
+                      </div>
 
-                  <p className="text-[10px] text-slate-400">
-                    {currentPayInfo.instructions}
-                  </p>
-                </div>
+                      {/* Bank Name */}
+                      <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">
+                          Bank Name
+                        </span>
+                        <span className="font-bold text-white text-xs block mt-0.5">
+                          {currentPayInfo.bankName}
+                        </span>
+                      </div>
+
+                      {/* Account Number - Compulsory */}
+                      <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/50 sm:col-span-2 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-cyan-300 uppercase tracking-wider block font-bold">
+                            Account Number (Compulsory)
+                          </span>
+                          <span className="font-mono font-extrabold text-cyan-200 text-sm tracking-wider block mt-0.5 select-all">
+                            {currentPayInfo.accountNumber}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPaymentInfo(currentPayInfo.accountNumber || '', 'acc')}
+                          className="px-2.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                        >
+                          {copiedKey === 'acc' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedKey === 'acc' ? 'Copied' : 'Copy'}</span>
+                        </button>
+                      </div>
+
+                      {/* Routing Number (ABA) */}
+                      <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">
+                            Routing (ABA)
+                          </span>
+                          <span className="font-mono font-bold text-white text-xs block mt-0.5 select-all">
+                            {currentPayInfo.routingNumber}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPaymentInfo(currentPayInfo.routingNumber || '', 'routing')}
+                          className="text-[10px] text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          {copiedKey === 'routing' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          <span>{copiedKey === 'routing' ? 'Copied' : 'Copy'}</span>
+                        </button>
+                      </div>
+
+                      {/* Account Type */}
+                      <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">
+                          Account Type
+                        </span>
+                        <span className="font-bold text-white text-xs block mt-0.5">
+                          {currentPayInfo.accountType}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-slate-400">
+                      {currentPayInfo.instructions}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-cyan-500/30 text-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-cyan-300 text-[11px] uppercase tracking-wider">
+                        Send Payment To / Details:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyPaymentInfo(currentPayInfo.shortCopy, 'main')}
+                        className="text-[10px] text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedKey === 'main' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedKey === 'main' ? 'Copied' : 'Copy'}</span>
+                      </button>
+                    </div>
+
+                    <div className="font-mono text-[11px] text-slate-200 bg-slate-900/80 p-2 rounded-lg border border-slate-800 select-all break-all">
+                      {currentPayInfo.address}
+                    </div>
+
+                    <p className="text-[10px] text-slate-400">
+                      {currentPayInfo.instructions}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* PAYMENT SCREENSHOT PROOF UPLOAD (Optional) */}

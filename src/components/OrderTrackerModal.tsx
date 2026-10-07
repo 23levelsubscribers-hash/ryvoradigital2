@@ -11,8 +11,6 @@ interface OrderTrackerModalProps {
 }
 
 export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-
   const [orderId, setOrderId] = useState('');
   const [email, setEmail] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<CustomerOrder | null>(null);
@@ -81,6 +79,8 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({ isOpen, on
       setLoading(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">

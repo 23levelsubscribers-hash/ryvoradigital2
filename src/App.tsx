@@ -298,17 +298,21 @@ export default function App() {
   const handleAddToCart = (
     product: Product,
     duration: PlanDuration = '1_month',
-    accountType: AccountType = product.allowedAccountTypes[0] || 'private_account',
+    accountType?: AccountType,
     customPrice?: number
   ) => {
-    const itemPrice = customPrice !== undefined ? customPrice : product.priceUSD;
+    if (!product) return;
+    const resolvedDuration: PlanDuration = duration || '1_month';
+    const resolvedAccountType: AccountType =
+      accountType || (product.allowedAccountTypes && product.allowedAccountTypes[0]) || 'private_account';
+    const itemPrice = customPrice !== undefined ? customPrice : (product.priceUSD ?? 0);
 
     setCartItems((prev) => {
       const existingIdx = prev.findIndex(
         (item) =>
-          item.product.id === product.id &&
-          item.duration === duration &&
-          item.accountType === accountType
+          item.product?.id === product.id &&
+          item.duration === resolvedDuration &&
+          item.accountType === resolvedAccountType
       );
 
       if (existingIdx > -1) {
@@ -321,25 +325,31 @@ export default function App() {
         ...prev,
         {
           product,
-          duration,
-          accountType,
+          duration: resolvedDuration,
+          accountType: resolvedAccountType,
           quantity: 1,
           priceUSD: itemPrice,
         },
       ];
     });
 
-    showToast(`Added ${product.name} to your bag`);
+    showToast(`Added ${product.name || 'item'} to your bag`);
   };
 
   // Instant Buy Now
   const handleBuyNow = (
     product: Product,
-    duration: PlanDuration,
-    accountType: AccountType,
-    price: number
+    duration?: PlanDuration,
+    accountType?: AccountType,
+    price?: number
   ) => {
-    handleAddToCart(product, duration, accountType, price);
+    if (!product) return;
+    const resolvedDuration: PlanDuration = duration || '1_month';
+    const resolvedAccountType: AccountType =
+      accountType || (product.allowedAccountTypes && product.allowedAccountTypes[0]) || 'private_account';
+    const resolvedPrice = price !== undefined ? price : (product.priceUSD ?? 0);
+
+    handleAddToCart(product, resolvedDuration, resolvedAccountType, resolvedPrice);
     setIsChatOpen(false);
     setIsCartOpen(true);
   };

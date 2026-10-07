@@ -16,8 +16,6 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
   onClose,
   onOpenChat,
 }) => {
-  if (!order) return null;
-
   const [copiedKey, setCopiedKey] = useState(false);
   const [showFullProof, setShowFullProof] = useState(false);
 
@@ -26,6 +24,8 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
     setCopiedKey(true);
     setTimeout(() => setCopiedKey(false), 2000);
   };
+
+  if (!order) return null;
 
   const isDelivered = order.status === 'delivered';
 
