@@ -2364,20 +2364,6 @@
       "description": "Limited Flash Deal for Annual Bundles",
       "active": false,
       "usageCount": 12
-    },
-    {
-      "code": "USA10",
-      "discountPercent": 10,
-      "description": "10% USA Community Welcome Discount",
-      "active": true,
-      "usageCount": 143
-    },
-    {
-      "code": "USA10",
-      "discountPercent": 10,
-      "description": "10% USA Community Welcome Discount",
-      "active": true,
-      "usageCount": 143
     }
   ],
   "reviews": [

@@ -41,6 +41,20 @@ const INITIAL_COUPONS: PromoCoupon[] = [
   { code: 'FLASH50', discountPercent: 50, description: 'Limited Flash Deal for Annual Bundles', active: false, usageCount: 12 },
 ];
 
+export function deduplicateCoupons(list: PromoCoupon[]): PromoCoupon[] {
+  const map = new Map<string, PromoCoupon>();
+  for (const c of list) {
+    if (c && c.code) {
+      const codeKey = c.code.trim().toUpperCase();
+      const existing = map.get(codeKey);
+      if (!existing || (c.usageCount || 0) > (existing.usageCount || 0)) {
+        map.set(codeKey, { ...c, code: codeKey });
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
 const INITIAL_ORDERS: CustomerOrder[] = [
   {
     orderId: 'RYV-94821-US',
@@ -149,7 +163,7 @@ export default function App() {
   const [coupons, setCoupons] = useState<PromoCoupon[]>(() => {
     try {
       const saved = localStorage.getItem('ryvora_coupons');
-      return saved ? JSON.parse(saved) : INITIAL_COUPONS;
+      return saved ? deduplicateCoupons(JSON.parse(saved)) : INITIAL_COUPONS;
     } catch {
       return INITIAL_COUPONS;
     }
@@ -217,7 +231,7 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('ryvora_coupons', JSON.stringify(coupons));
+      localStorage.setItem('ryvora_coupons', JSON.stringify(deduplicateCoupons(coupons)));
     } catch (e) {
       console.error(e);
     }
@@ -246,7 +260,7 @@ export default function App() {
 
         if (!mounted) return;
         if (serverProds && serverProds.length > 0) setProducts(serverProds);
-        if (serverCoups && serverCoups.length > 0) setCoupons(serverCoups);
+        if (serverCoups && serverCoups.length > 0) setCoupons(deduplicateCoupons(serverCoups));
         if (serverActs && serverActs.length > 0) setActivations(serverActs);
         if (serverAnn !== null && serverAnn !== undefined) setAnnouncementText(serverAnn);
 

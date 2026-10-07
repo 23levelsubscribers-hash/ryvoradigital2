@@ -112,8 +112,25 @@ function ensureWritableDirs() {
   }
 }
 
+function deduplicateCoupons(coupons: PromoCoupon[]): PromoCoupon[] {
+  const map = new Map<string, PromoCoupon>();
+  for (const c of coupons) {
+    if (c && c.code) {
+      const codeKey = c.code.trim().toUpperCase();
+      const existing = map.get(codeKey);
+      if (!existing || (c.usageCount || 0) > (existing.usageCount || 0)) {
+        map.set(codeKey, { ...c, code: codeKey });
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
 function loadFallbackDB(): FallbackDB {
-  if (fallbackDB) return fallbackDB;
+  if (fallbackDB) {
+    fallbackDB.coupons = deduplicateCoupons(fallbackDB.coupons);
+    return fallbackDB;
+  }
   ensureWritableDirs();
 
   let initial: FallbackDB = {
@@ -133,7 +150,7 @@ function loadFallbackDB(): FallbackDB {
       if (parsed) {
         if (Array.isArray(parsed.products) && parsed.products.length > 0) initial.products = parsed.products;
         if (Array.isArray(parsed.orders)) initial.orders = parsed.orders;
-        if (Array.isArray(parsed.coupons)) initial.coupons = parsed.coupons;
+        if (Array.isArray(parsed.coupons)) initial.coupons = deduplicateCoupons(parsed.coupons);
         if (Array.isArray(parsed.reviews)) initial.reviews = parsed.reviews;
         if (Array.isArray(parsed.activations)) initial.activations = parsed.activations;
         if (parsed.announcement) initial.announcement = parsed.announcement;
@@ -153,7 +170,7 @@ function loadFallbackDB(): FallbackDB {
       if (parsed) {
         if (Array.isArray(parsed.products) && parsed.products.length > 0) initial.products = parsed.products;
         if (Array.isArray(parsed.orders)) initial.orders = parsed.orders;
-        if (Array.isArray(parsed.coupons)) initial.coupons = parsed.coupons;
+        if (Array.isArray(parsed.coupons)) initial.coupons = deduplicateCoupons(parsed.coupons);
         if (Array.isArray(parsed.reviews)) initial.reviews = parsed.reviews;
         if (Array.isArray(parsed.activations)) initial.activations = parsed.activations;
         if (parsed.announcement) initial.announcement = parsed.announcement;
@@ -163,11 +180,13 @@ function loadFallbackDB(): FallbackDB {
     console.warn('[DB] Notice: db.json read fallback:', err);
   }
 
+  initial.coupons = deduplicateCoupons(initial.coupons);
   fallbackDB = initial;
   return fallbackDB;
 }
 
 function saveFallbackDB(data: FallbackDB) {
+  data.coupons = deduplicateCoupons(data.coupons);
   // Always try saving to /tmp first (works on Vercel Serverless, AWS Lambda, Linux, etc.)
   try {
     ensureWritableDirs();
@@ -955,7 +974,7 @@ export async function getCoupons(): Promise<PromoCoupon[]> {
   }
 
   const db = loadFallbackDB();
-  return [...db.coupons];
+  return deduplicateCoupons(db.coupons);
 }
 
 export async function getCouponByCode(code: string): Promise<PromoCoupon | null> {

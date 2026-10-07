@@ -324,15 +324,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     e.preventDefault();
     if (!newCouponCode.trim()) return;
 
+    const cleanCode = newCouponCode.trim().toUpperCase();
     const coupon: PromoCoupon = {
-      code: newCouponCode.trim().toUpperCase(),
+      code: cleanCode,
       discountPercent: parseInt(newCouponDiscount) || 10,
       description: newCouponDesc.trim() || `${newCouponDiscount}% Discount Voucher`,
       active: true,
       usageCount: 0,
     };
 
-    onUpdateCoupons([...coupons, coupon]);
+    const exists = coupons.some((c) => c.code.toUpperCase() === cleanCode);
+    const updatedCoupons = exists
+      ? coupons.map((c) => (c.code.toUpperCase() === cleanCode ? coupon : c))
+      : [coupon, ...coupons];
+
+    onUpdateCoupons(updatedCoupons);
     setNewCouponCode('');
     setNewCouponDesc('');
 
@@ -2368,9 +2374,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Coupons List */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {coupons.map((c) => (
+                {(() => {
+                  const map = new Map<string, PromoCoupon>();
+                  for (const c of coupons) {
+                    if (c && c.code) {
+                      const k = c.code.trim().toUpperCase();
+                      if (!map.has(k) || ((c.usageCount || 0) > (map.get(k)?.usageCount || 0))) {
+                        map.set(k, { ...c, code: k });
+                      }
+                    }
+                  }
+                  return Array.from(map.values());
+                })().map((c, idx) => (
                   <div
-                    key={c.code}
+                    key={`${c.code}-${idx}`}
                     className={`p-5 rounded-2xl border flex flex-col justify-between ${
                       c.active
                         ? 'bg-[#090d16] border-slate-800'
