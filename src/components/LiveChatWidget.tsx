@@ -82,9 +82,9 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
       
-      {/* Floating launcher trigger button with tooltip pill (matching screenshot) */}
+      {/* Floating launcher trigger button with tooltip pill */}
       {!isOpen && (
         <div className="flex items-center gap-2 group">
           <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/95 border border-slate-700/80 text-xs font-semibold text-slate-200 shadow-xl backdrop-blur-md">
@@ -94,18 +94,18 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
 
           <button
             onClick={onToggle}
-            className="w-14 h-14 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 flex items-center justify-center shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:scale-105 active:scale-95 transition-all cursor-pointer relative"
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 flex items-center justify-center shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:scale-105 active:scale-95 transition-all cursor-pointer relative"
             aria-label="Open Live Chat"
           >
-            <MessageSquare className="w-7 h-7 fill-slate-950" />
-            <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-emerald-300 border-2 border-slate-950 rounded-full animate-ping" />
+            <MessageSquare className="w-6 h-6 sm:w-7 sm:h-7 fill-slate-950" />
+            <span className="absolute top-1 right-1 w-3 h-3 sm:w-3.5 sm:h-3.5 bg-emerald-300 border-2 border-slate-950 rounded-full animate-ping" />
           </button>
         </div>
       )}
 
       {/* Expanded Live Chat Dialog */}
       {isOpen && (
-        <div className="w-[90vw] sm:w-96 max-h-[520px] h-[520px] rounded-3xl bg-[#090d16] border border-slate-700/80 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="w-[calc(100vw-32px)] sm:w-96 max-h-[80vh] h-[480px] sm:h-[520px] rounded-2xl sm:rounded-3xl bg-[#090d16] border border-slate-700/80 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
           
           {/* Header */}
           <div className="p-4 bg-gradient-to-r from-[#0c1424] to-[#0f1d33] border-b border-slate-800 flex items-center justify-between">

@@ -63,14 +63,14 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   }, [selectedCategory, searchQuery, sortBy, products]);
 
   return (
-    <section id="catalog" className="py-6 sm:py-16 max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 overflow-hidden">
+    <section id="catalog" className="py-6 sm:py-16 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 overflow-hidden box-border">
       
       {/* Section Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-8">
-        <div>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-8 w-full min-w-0">
+        <div className="min-w-0">
           <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-bold tracking-wider text-emerald-400 uppercase mb-1 sm:mb-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span>FULL WARRANTY CATALOG · {products.length} ACTIVE SERVICES</span>
+            <span className="truncate">FULL WARRANTY CATALOG · {products.length} ACTIVE SERVICES</span>
           </div>
 
           <h2 className="text-lg sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight font-display">
@@ -83,7 +83,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         </div>
 
         {/* Total count indicator */}
-        <div className="flex items-center justify-between sm:justify-end gap-2">
+        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
           <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl bg-slate-900 border border-slate-800 text-[10px] sm:text-xs text-slate-300">
             Showing <strong className="text-cyan-400 font-bold">{filteredProducts.length}</strong> of {products.length} Products
           </div>
@@ -91,10 +91,10 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       </div>
 
       {/* Category Tabs & Sort Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-8 w-full min-w-0">
         
         {/* Horizontal Category Filter Buttons */}
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none touch-pan-x">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1.5 max-w-full scrollbar-none touch-pan-x w-full min-w-0">
           {CATEGORIES.map((cat) => {
             const isActive = selectedCategory === cat.id;
             const count = cat.id === 'all'
@@ -106,7 +106,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 key={cat.id}
                 type="button"
                 onClick={() => onSelectCategory(cat.id)}
-                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all cursor-pointer active:scale-95 shrink-0 ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all cursor-pointer active:scale-95 shrink-0 ${
                   isActive
                     ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(124,58,237,0.4)] border border-purple-400/40'
                     : 'bg-slate-900/90 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700'
@@ -140,7 +140,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
       {/* Product Grid - 1 full-width card on mobile screen, 2 on tablet, 3-4 on desktop */}
       {filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-6 w-full max-w-full min-w-0">
           {filteredProducts.map((product) => (
             <ProductCard
               key={product.id}

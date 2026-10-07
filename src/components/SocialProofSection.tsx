@@ -42,35 +42,35 @@ export const SocialProofSection: React.FC<SocialProofSectionProps> = ({ onOpenCh
   };
 
   return (
-    <section id="proofs" className="py-16 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="proofs" className="py-8 sm:py-20 max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 overflow-hidden">
       
-      {/* Top Tag & Title (Matching screenshot 12.50.12) */}
-      <div className="text-center max-w-3xl mx-auto mb-12">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-4">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
+      {/* Top Tag & Title */}
+      <div className="text-center max-w-3xl mx-auto mb-6 sm:mb-12">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-emerald-500/30 text-emerald-400 text-[10px] sm:text-xs font-semibold mb-3">
+          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
           <span>Official VIP Channel · 100% Transparent Proofs</span>
         </div>
 
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight font-display">
+        <h2 className="text-xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight font-display">
           SEE OUR REAL CUSTOMER ACTIVATIONS & REVIEWS
         </h2>
 
-        <p className="text-sm sm:text-base font-semibold text-emerald-400 mt-3 mb-2">
+        <p className="text-xs sm:text-base font-semibold text-emerald-400 mt-2 mb-1 sm:mt-3 sm:mb-2">
           Want to see proof before placing your order?
         </p>
 
-        <p className="text-xs sm:text-sm text-slate-400">
+        <p className="text-[11px] sm:text-sm text-slate-400">
           We regularly post real customer activation proofs, order updates, and customer reviews on our official community channels.
         </p>
       </div>
 
-      {/* 4 Feature Boxes (Matching screenshot 12.50.12) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+      {/* 4 Feature Boxes */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-10">
         
-        <div className="p-5 rounded-2xl bg-[#090d16] border border-slate-800 flex flex-col justify-between">
+        <div className="p-4 sm:p-5 rounded-2xl bg-[#090d16] border border-slate-800 flex flex-col justify-between">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-3">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-2.5 sm:mb-3">
+              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-1 font-display">
               Real Customer Activations
@@ -81,10 +81,10 @@ export const SocialProofSection: React.FC<SocialProofSectionProps> = ({ onOpenCh
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-[#090d16] border border-slate-800 flex flex-col justify-between">
+        <div className="p-4 sm:p-5 rounded-2xl bg-[#090d16] border border-slate-800 flex flex-col justify-between">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-3">
-              <RefreshCw className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-2.5 sm:mb-3">
+              <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-1 font-display">
               Regular Proof Updates
@@ -95,10 +95,10 @@ export const SocialProofSection: React.FC<SocialProofSectionProps> = ({ onOpenCh
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-[#090d16] border border-slate-800 flex flex-col justify-between">
+        <div className="p-4 sm:p-5 rounded-2xl bg-[#090d16] border border-slate-800 flex flex-col justify-between">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-3">
-              <MessageSquare className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-2.5 sm:mb-3">
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-1 font-display">
               Customer Reviews
@@ -109,10 +109,10 @@ export const SocialProofSection: React.FC<SocialProofSectionProps> = ({ onOpenCh
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-[#090d16] border border-slate-800 flex flex-col justify-between">
+        <div className="p-4 sm:p-5 rounded-2xl bg-[#090d16] border border-slate-800 flex flex-col justify-between">
           <div>
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-3">
-              <Radio className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-2.5 sm:mb-3">
+              <Radio className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-1 font-display">
               Official VIP Channel
@@ -125,11 +125,11 @@ export const SocialProofSection: React.FC<SocialProofSectionProps> = ({ onOpenCh
 
       </div>
 
-      {/* Main Proof CTA Button (Matching screenshot 12.50.12) */}
-      <div className="text-center mb-12">
+      {/* Main Proof CTA Button */}
+      <div className="text-center mb-6 sm:mb-12">
         <button
           onClick={onOpenChat}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold text-xs shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:brightness-110 transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold text-xs shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:brightness-110 transition-all cursor-pointer"
         >
           <MessageSquare className="w-4 h-4 fill-slate-950" />
           <span>View Customer Proofs & Live Activations</span>
@@ -138,13 +138,13 @@ export const SocialProofSection: React.FC<SocialProofSectionProps> = ({ onOpenCh
       </div>
 
       {/* Interactive Tabs for Live Feed / Verified Reviews */}
-      <div className="rounded-3xl bg-[#0a0e17] border border-slate-800/80 p-6 sm:p-8">
+      <div className="rounded-2xl sm:rounded-3xl bg-[#0a0e17] border border-slate-800/80 p-4 sm:p-8">
         
         {/* Tab Controls */}
-        <div className="flex items-center justify-center gap-2 mb-8">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mb-4 sm:mb-8">
           <button
             onClick={() => setActiveTab('reviews')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'reviews'
                 ? 'bg-cyan-500 text-slate-950 shadow-md'
                 : 'bg-slate-900 text-slate-400 hover:text-white'
@@ -155,7 +155,7 @@ export const SocialProofSection: React.FC<SocialProofSectionProps> = ({ onOpenCh
 
           <button
             onClick={() => setActiveTab('feed')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'feed'
                 ? 'bg-cyan-500 text-slate-950 shadow-md'
                 : 'bg-slate-900 text-slate-400 hover:text-white'
@@ -166,7 +166,7 @@ export const SocialProofSection: React.FC<SocialProofSectionProps> = ({ onOpenCh
 
           <button
             onClick={() => setActiveTab('proofs')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'proofs'
                 ? 'bg-cyan-500 text-slate-950 shadow-md'
                 : 'bg-slate-900 text-slate-400 hover:text-white'
